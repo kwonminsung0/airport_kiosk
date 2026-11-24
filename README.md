@@ -13,11 +13,15 @@
 | 언어 | Java 17 |
 | 프레임워크 | Spring Boot 4.0.10 |
 | DB 접근 | MyBatis Spring Boot Starter 4.0.1 (XML 매퍼) |
-| DB | Oracle Database Free 23ai (컨테이너) |
+| DB | Oracle AI Database 26ai Free (23.26.4, 컨테이너) |
 | 테스트 DB | H2 (`MODE=Oracle`) |
 | 빌드 | Gradle - Groovy |
 | 화면 | HTML, CSS, Vanilla JS |
 | 테스트 | JUnit 5, Mockito, Spring Boot Test |
+
+## 개발 방식
+
+Claude Code를 보조 도구로 사용했습니다. 요구사항 정의, 설계 결정, 코드 검토, 테스트 확인은 직접 하고, 모든 코드는 직접 설명할 수 있는 범위로만 반영합니다.
 
 ## 실행 방법
 
