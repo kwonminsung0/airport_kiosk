@@ -15,15 +15,23 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.classic.spi.ThrowableProxyUtil;
+import ch.qos.logback.core.read.ListAppender;
 import com.example.airport_kiosk.common.exception.BusinessException;
 import com.example.airport_kiosk.common.exception.ErrorCode;
 import com.example.airport_kiosk.interfacelog.service.InterfaceLogService;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -39,6 +47,8 @@ class AirlineClientTest {
             """;
 
     private final InterfaceLogService interfaceLogService = mock(InterfaceLogService.class);
+    private final Logger logger = (Logger) LoggerFactory.getLogger(AirlineClient.class);
+    private final ListAppender<ILoggingEvent> logs = new ListAppender<>();
     private MockRestServiceServer server;
     private AirlineClient airlineClient;
 
@@ -47,6 +57,13 @@ class AirlineClientTest {
         RestClient.Builder builder = RestClient.builder().baseUrl("http://airline.test");
         server = MockRestServiceServer.bindTo(builder).build();
         airlineClient = new AirlineClient(builder.build(), interfaceLogService);
+        logs.start();
+        logger.addAppender(logs);
+    }
+
+    @AfterEach
+    void removeAppender() {
+        logger.detachAppender(logs);
     }
 
     @Test
@@ -106,6 +123,59 @@ class AirlineClientTest {
     }
 
     @Test
+    @DisplayName("연결에 실패하면 원인 예외를 서버 로그에 남기고 성은 남기지 않는다")
+    void logsConnectionFailureCause() {
+        assertErrorCode(withException(new ConnectException("Connection refused")), ErrorCode.AIRLINE_ERROR);
+
+        assertThat(logs.list).extracting(ILoggingEvent::getLevel).containsExactly(Level.WARN);
+        assertThat(loggedText()).contains("ERROR", "ConnectException: Connection refused").doesNotContain("KIM");
+    }
+
+    @Test
+    @DisplayName("응답이 늦으면 원인 예외를 서버 로그에 남기고 성은 남기지 않는다")
+    void logsTimeoutCause() {
+        assertErrorCode(withException(new SocketTimeoutException("Read timed out")), ErrorCode.AIRLINE_TIMEOUT);
+
+        assertThat(logs.list).extracting(ILoggingEvent::getLevel).containsExactly(Level.WARN);
+        assertThat(loggedText()).contains("TIMEOUT", "SocketTimeoutException: Read timed out").doesNotContain("KIM");
+    }
+
+    @Test
+    @DisplayName("항공사 서버 오류면 상태 코드만 남기고 응답 본문은 남기지 않는다")
+    void logsStatusWithoutBody() {
+        assertErrorCode(withServerError().body("error for KIM"), ErrorCode.AIRLINE_ERROR);
+
+        assertThat(logs.list).extracting(ILoggingEvent::getLevel).containsExactly(Level.WARN);
+        assertThat(loggedText()).contains("500", "InternalServerError").doesNotContain("KIM");
+    }
+
+    @Test
+    @DisplayName("응답을 해석할 수 없으면 예외 종류만 남기고 응답 본문은 남기지 않는다")
+    void logsParseFailureWithoutBody() {
+        assertErrorCode(withSuccess("{\"flightId\":\"KIM\"}", MediaType.APPLICATION_JSON), ErrorCode.AIRLINE_ERROR);
+
+        assertThat(logs.list).extracting(ILoggingEvent::getLevel).containsExactly(Level.WARN);
+        assertThat(loggedText()).contains("InvalidFormatException").doesNotContain("KIM");
+    }
+
+    @Test
+    @DisplayName("응답 본문이 비어 있으면 그 사실을 서버 로그에 남긴다")
+    void logsEmptyBody() {
+        assertErrorCode(withSuccess(), ErrorCode.AIRLINE_ERROR);
+
+        assertThat(logs.list).extracting(ILoggingEvent::getLevel).containsExactly(Level.WARN);
+        assertThat(loggedText()).contains("본문이 비어 있음");
+    }
+
+    @Test
+    @DisplayName("예약이 없는 것은 장애가 아니므로 서버 로그에 경고를 남기지 않는다")
+    void doesNotWarnOnNotFound() {
+        assertErrorCode(withResourceNotFound(), ErrorCode.RESERVATION_NOT_FOUND);
+
+        assertThat(logs.list).isEmpty();
+    }
+
+    @Test
     @DisplayName("로그 저장에 실패해도 예약은 돌려준다")
     void returnsReservationEvenIfLogFails() {
         server.expect(requestTo(URL)).andRespond(withSuccess(BODY, MediaType.APPLICATION_JSON));
@@ -124,6 +194,13 @@ class AirlineClientTest {
         airlineClient.findReservation("ABC123", "O'NEIL&x=1");
 
         server.verify();
+    }
+
+    // 로그 문구와 예외 내용(원인 포함)을 합친 문자열
+    private String loggedText() {
+        return logs.list.stream()
+                .map(event -> event.getFormattedMessage() + ThrowableProxyUtil.asString(event.getThrowableProxy()))
+                .collect(Collectors.joining());
     }
 
     private void assertErrorCode(ResponseCreator response, ErrorCode expected) {

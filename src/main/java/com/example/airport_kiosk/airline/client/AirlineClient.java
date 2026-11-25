@@ -7,9 +7,11 @@ import java.net.SocketTimeoutException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
@@ -35,6 +37,7 @@ public class AirlineClient {
                     .retrieve()
                     .body(AirlineReservation.class);
             if (reservation == null) {
+                log.warn("항공사 응답의 본문이 비어 있음: interfaceName={}", INTERFACE_NAME);
                 throw new BusinessException(ErrorCode.AIRLINE_ERROR);
             }
             resultCode = String.valueOf(HttpStatus.OK.value());
@@ -47,13 +50,15 @@ public class AirlineClient {
             throw new BusinessException(ErrorCode.RESERVATION_NOT_FOUND, e);
         } catch (RestClientResponseException e) {
             resultCode = String.valueOf(e.getStatusCode().value());
+            logFailure(resultCode, e);
             throw new BusinessException(ErrorCode.AIRLINE_ERROR, e);
         } catch (RestClientException e) {
-            if (isTimeout(e)) {
+            boolean timeout = isTimeout(e);
+            if (timeout) {
                 resultCode = "TIMEOUT";
-                throw new BusinessException(ErrorCode.AIRLINE_TIMEOUT, e);
             }
-            throw new BusinessException(ErrorCode.AIRLINE_ERROR, e);
+            logFailure(resultCode, e);
+            throw new BusinessException(timeout ? ErrorCode.AIRLINE_TIMEOUT : ErrorCode.AIRLINE_ERROR, e);
         } finally {
             long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
             saveLog(pnr, resultCode, success, elapsedMs);
@@ -67,6 +72,16 @@ public class AirlineClient {
             }
         }
         return false;
+    }
+
+    // 통신 실패는 원인 예외까지 남긴다. 응답을 받은 뒤의 오류는 본문에 개인정보가 있을 수 있어 예외 종류만 남긴다
+    private void logFailure(String resultCode, RestClientException e) {
+        if (e instanceof ResourceAccessException) {
+            log.warn("항공사 통신 실패: interfaceName={}, resultCode={}", INTERFACE_NAME, resultCode, e);
+            return;
+        }
+        String cause = NestedExceptionUtils.getMostSpecificCause(e).getClass().getSimpleName();
+        log.warn("항공사 응답 오류: interfaceName={}, resultCode={}, cause={}", INTERFACE_NAME, resultCode, cause);
     }
 
     // 로그 저장에 실패해도 승객의 업무는 계속한다. 이름은 개인정보이므로 남기지 않는다
