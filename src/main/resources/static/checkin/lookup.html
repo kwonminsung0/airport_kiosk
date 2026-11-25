@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>예약 조회</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <p id="message" class="message" role="alert" hidden></p>
+
+    <h1>예약 조회</h1>
+    <form id="lookup-form" autocomplete="off">
+        <label for="pnr">예약번호 (영문·숫자 6자리)</label>
+        <input id="pnr" type="text">
+        <label for="last-name">영문 성</label>
+        <input id="last-name" type="text">
+        <button id="lookup-button" type="submit">조회</button>
+    </form>
+
+    <section id="result" hidden>
+        <h2>예약 정보</h2>
+        <dl>
+            <dt>예약번호</dt><dd id="result-pnr"></dd>
+            <dt>이름</dt><dd id="result-name"></dd>
+            <dt>편명</dt><dd id="result-flight-no"></dd>
+            <dt>구간</dt><dd id="result-route"></dd>
+            <dt>출발 시각</dt><dd id="result-dep-time"></dd>
+            <dt>게이트</dt><dd id="result-gate"></dd>
+        </dl>
+    </section>
+
+    <a href="/">처음으로</a>
+    <script src="/js/lookup.js"></script>
+</body>
+</html>
