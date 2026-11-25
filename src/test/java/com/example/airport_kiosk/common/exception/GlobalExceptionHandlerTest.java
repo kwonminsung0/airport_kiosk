@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.TestComponent;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
@@ -92,6 +93,31 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.message").value("입력값을 확인해 주세요."));
     }
 
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("요청이 잘못된 Spring 표준 예외는 500이 아니라 400으로 응답한다")
+    @ValueSource(strings = {
+            "/test/param", "/test/header", "/test/min?value=0", "/test/min?value=abc"
+    })
+    void respondsBadRequestForStandardClientErrors(String path) throws Exception {
+        mockMvc.perform(get(path))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_INPUT"))
+                .andExpect(jsonPath("$.message").value("입력값을 확인해 주세요."))
+                .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("JSON이 아닌 Content-Type은 415로 응답하고 서버 오류로 기록하지 않는다")
+    @ValueSource(strings = {"text/plain", "application/x-www-form-urlencoded", "application/octet-stream"})
+    void respondsUnsupportedMediaType(String contentType, CapturedOutput output) throws Exception {
+        mockMvc.perform(post("/test/validate").contentType(contentType).content("{}"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"))
+                .andExpect(jsonPath("$.message").value("입력값을 확인해 주세요."));
+
+        assertThat(output.getAll()).doesNotContain("예상하지 못한 오류");
+    }
+
     @Test
     @DisplayName("예상하지 못한 오류는 일반 문구만 응답하고 실제 내용은 서버 로그에만 남긴다")
     void hidesInternalErrorDetails(CapturedOutput output) throws Exception {
@@ -104,6 +130,18 @@ class GlobalExceptionHandlerTest {
 
         assertThat(body).doesNotContain("ORA-00942", "SECRET_TABLE", "IllegalStateException");
         assertThat(output.getAll()).contains("ORA-00942: SECRET_TABLE");
+    }
+
+    @Test
+    @DisplayName("Spring 표준 예외라도 서버 오류면 500과 일반 문구로 응답하고 로그에 남긴다")
+    void hidesStandardServerErrorDetails(CapturedOutput output) throws Exception {
+        String body = mockMvc.perform(get("/test/not-writable"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                .andReturn().getResponse().getContentAsString();
+
+        assertThat(body).doesNotContain("SECRET_FIELD");
+        assertThat(output.getAll()).contains("SECRET_FIELD");
     }
 
     @Test

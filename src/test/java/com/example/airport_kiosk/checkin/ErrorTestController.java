@@ -3,15 +3,19 @@ package com.example.airport_kiosk.checkin;
 import com.example.airport_kiosk.common.exception.BusinessException;
 import com.example.airport_kiosk.common.exception.ErrorCode;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.springframework.boot.test.context.TestComponent;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -35,6 +39,23 @@ public class ErrorTestController {
     @GetMapping("/test/with-cause")
     public void withCause() {
         throw new BusinessException(ErrorCode.AIRLINE_ERROR, new IllegalStateException("SECRET_URL"));
+    }
+
+    @GetMapping("/test/param")
+    public void requireParam(@RequestParam("value") String value) {
+    }
+
+    @GetMapping("/test/header")
+    public void requireHeader(@RequestHeader("X-Test") String value) {
+    }
+
+    @GetMapping("/test/min")
+    public void requireMin(@RequestParam("value") @Min(1) int value) {
+    }
+
+    @GetMapping("/test/not-writable")
+    public void notWritable() {
+        throw new HttpMessageNotWritableException("SECRET_FIELD");
     }
 
     @GetMapping("/test/unexpected")
