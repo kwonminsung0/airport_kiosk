@@ -147,6 +147,16 @@ erDiagram
 
 ## API 목록
 
+### 가상 항공사 API
+
+외부 항공사 시스템을 대신하는 API입니다. 키오스크 서버가 HTTP로 호출합니다.
+
+| 메서드 | 주소 | 설명 | 요청 | 응답 | 에러 |
+|---|---|---|---|---|---|
+| GET | /mock-airline/reservations | 예약 조회 (성은 대소문자 무시) | `?pnr=&lastName=` | `{ pnr, lastName, firstName, baggageAllowanceKg, flightId, flightNo, depAirport, arrAirport, depTime, gate }` | 400 파라미터 누락, 404 예약 없음 |
+
+### 키오스크 API
+
 작성 예정
 
 ## 테스트
