@@ -45,59 +45,59 @@ erDiagram
     BOARDING_PASS ||--o| BAGGAGE : "위탁 (2단계)"
 
     FLIGHT {
-        NUMBER flight_id PK
+        NUMBER(19) flight_id PK
         VARCHAR2(10) flight_no "편명"
         VARCHAR2(3) dep_airport "출발 공항"
         VARCHAR2(3) arr_airport "도착 공항"
         TIMESTAMP dep_time "출발 시각"
         VARCHAR2(5) gate "탑승구"
-        NUMBER seat_rows "좌석 행 수"
-        NUMBER seat_cols "좌석 열 수"
+        NUMBER(3) seat_rows "좌석 행 수"
+        NUMBER(3) seat_cols "좌석 열 수"
     }
     AL_RESERVATION {
         VARCHAR2(6) pnr PK "예약번호"
         VARCHAR2(50) last_name "영문 성"
         VARCHAR2(50) first_name "영문 이름"
-        NUMBER flight_id FK
-        NUMBER baggage_allowance_kg "무료 수하물 허용량"
+        NUMBER(19) flight_id FK
+        NUMBER(3) baggage_allowance_kg "무료 수하물 허용량"
     }
     SEAT {
-        NUMBER seat_id PK
-        NUMBER flight_id FK "UNIQUE(flight_id, seat_no)"
+        NUMBER(19) seat_id PK
+        NUMBER(19) flight_id FK "UNIQUE(flight_id, seat_no)"
         VARCHAR2(4) seat_no "좌석 번호, 예: 12A"
-        VARCHAR2(10) status "AVAILABLE 또는 ASSIGNED"
-        VARCHAR2(6) pnr "배정된 예약번호, NULL 허용"
+        VARCHAR2(10) status "CHECK: AVAILABLE 또는 ASSIGNED"
+        VARCHAR2(6) pnr "CHECK: AVAILABLE이면 NULL, ASSIGNED이면 필수"
     }
     CHECKIN {
-        NUMBER checkin_id PK
+        NUMBER(19) checkin_id PK
         VARCHAR2(6) pnr UK "중복 체크인 방지"
         VARCHAR2(50) last_name "체크인 시점의 성"
         VARCHAR2(50) first_name "체크인 시점의 이름"
-        NUMBER flight_id FK
-        NUMBER seat_id FK, UK "좌석 중복 배정 방지"
+        NUMBER(19) flight_id FK
+        NUMBER(19) seat_id FK, UK "좌석 중복 배정 방지"
         TIMESTAMP checked_in_at "체크인 시각"
     }
     BOARDING_PASS {
         VARCHAR2(20) boarding_pass_no PK "탑승권 번호"
-        NUMBER checkin_id FK, UK
+        NUMBER(19) checkin_id FK, UK
         VARCHAR2(5) gate "발급 시점의 탑승구"
         TIMESTAMP boarding_time "탑승 시각"
         TIMESTAMP issued_at "발급 시각"
     }
     BAGGAGE {
-        NUMBER baggage_id PK
+        NUMBER(19) baggage_id PK
         VARCHAR2(20) boarding_pass_no FK, UK "탑승권당 1개"
-        NUMBER weight_kg "무게"
+        NUMBER weight_kg "무게, NUMBER(5,2), CHECK 0 초과"
         VARCHAR2(10) tag_no UK "태그 번호, 숫자 10자리"
         TIMESTAMP registered_at "등록 시각"
     }
     INTERFACE_LOG {
-        NUMBER log_id PK
+        NUMBER(19) log_id PK
         VARCHAR2(50) interface_name "연계명"
         VARCHAR2(500) request_summary "요청 요약"
         VARCHAR2(50) result_code "결과 코드"
-        CHAR(1) success_yn "Y 또는 N"
-        NUMBER elapsed_ms "소요 시간"
+        CHAR(1) success_yn "CHECK: Y 또는 N"
+        NUMBER(10) elapsed_ms "소요 시간"
         TIMESTAMP created_at "기록 시각"
     }
 ```
