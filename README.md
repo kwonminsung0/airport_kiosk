@@ -25,7 +25,35 @@ Claude Code를 보조 도구로 사용했습니다. 요구사항 정의, 설계 
 
 ## 실행 방법
 
-작성 예정
+준비물: JDK 17, Docker 실행 환경(OrbStack 또는 Docker Desktop)
+
+1. 환경 변수 파일을 만들고 `change_me`를 원하는 비밀번호로 바꿉니다.
+
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Oracle을 실행하고 준비될 때까지 기다립니다. 처음에는 이미지를 내려받아 시간이 걸립니다.
+
+   ```bash
+   docker compose up -d --wait
+   ```
+
+3. 애플리케이션을 실행합니다. 접속 주소는 `http://localhost:8080`입니다. (화면은 작성 예정)
+
+   ```bash
+   ./gradlew bootRun
+   ```
+
+테스트는 H2로 실행하므로 Oracle과 `.env`가 없어도 됩니다.
+
+```bash
+./gradlew test
+```
+
+- **애플리케이션을 재시작하면 데이터가 초기화됩니다.** 시작할 때마다 `schema.sql`과 `data.sql`로 테이블을 다시 만들며, 출발 시각도 시작한 시각을 기준으로 다시 계산합니다.
+- `docker compose down`은 Oracle을 종료하고, `docker compose down -v`는 DB 데이터까지 지웁니다.
+- DB 비밀번호는 처음 실행할 때 정해집니다. 나중에 `.env`의 비밀번호를 바꾸려면 `docker compose down -v` 후 다시 실행합니다.
 
 ## 주요 기능과 흐름
 
@@ -130,6 +158,7 @@ erDiagram
 | 날짜 | 문제 | 해결 |
 |---|---|---|
 | 2026-11-24 | JAVA_HOME이 잡히지 않아 Gradle JVM 오류 | JDK 홈 경로로 `JAVA_HOME`을 다시 지정 |
+| 2026-11-25 | `data.sql` 추가 후 테스트에서 시퀀스를 찾지 못함 | 테스트 프로필에서 H2를 Oracle 모드로 지정 |
 
 자세한 내용은 [docs/troubleshooting.md](docs/troubleshooting.md)에 있습니다.
 
