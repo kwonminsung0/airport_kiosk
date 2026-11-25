@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -142,6 +143,36 @@ class GlobalExceptionHandlerTest {
 
         assertThat(body).doesNotContain("SECRET_FIELD");
         assertThat(output.getAll()).contains("SECRET_FIELD");
+    }
+
+    @ParameterizedTest(name = "{0} → {1}")
+    @DisplayName("JSON을 받지 않는 요청에도 오류는 정해진 상태와 JSON으로 응답한다")
+    @CsvSource({
+            "/test/errors/RESERVATION_NOT_FOUND, 404, RESERVATION_NOT_FOUND",
+            "/test/errors/CHECKIN_NOT_AVAILABLE, 422, CHECKIN_NOT_AVAILABLE",
+            "/test/with-cause, 502, AIRLINE_ERROR",
+            "/test/param, 400, INVALID_INPUT",
+            "/test/unexpected, 500, INTERNAL_ERROR"
+    })
+    void respondsJsonEvenIfNotAcceptable(String path, int expectedStatus, String expectedCode) throws Exception {
+        mockMvc.perform(get(path).accept(MediaType.TEXT_HTML))
+                .andExpect(status().is(expectedStatus))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value(expectedCode));
+    }
+
+    @ParameterizedTest(name = "Content-Type: {0} → {1}")
+    @DisplayName("JSON을 받지 않는 요청에도 본문 오류는 정해진 상태와 JSON으로 응답한다")
+    @CsvSource({
+            "application/json, 400, INVALID_INPUT",
+            "text/plain, 415, UNSUPPORTED_MEDIA_TYPE"
+    })
+    void respondsJsonForBodyErrorsEvenIfNotAcceptable(String contentType, int expectedStatus, String expectedCode)
+            throws Exception {
+        mockMvc.perform(post("/test/validate").accept(MediaType.TEXT_HTML).contentType(contentType).content("{}"))
+                .andExpect(status().is(expectedStatus))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.code").value(expectedCode));
     }
 
     @Test

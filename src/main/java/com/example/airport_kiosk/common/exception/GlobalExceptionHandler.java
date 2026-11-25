@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -63,11 +64,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 : HttpStatus.valueOf(status.value()).name();
         return ResponseEntity.status(status)
                 .headers(headers)
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(new ErrorResponse(code, ErrorCode.INVALID_INPUT.getMessage()));
     }
 
+    // 형식을 JSON으로 정해 두지 않으면, JSON을 받지 않는 요청에서 응답을 쓰지 못해 원인 예외가 서버 로그에 그대로 남는다
     private ResponseEntity<Object> toResponse(ErrorCode errorCode, String message) {
         return ResponseEntity.status(errorCode.getStatus())
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(new ErrorResponse(errorCode.name(), message));
     }
 }
