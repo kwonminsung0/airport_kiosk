@@ -25,10 +25,15 @@ import ch.qos.logback.core.read.ListAppender;
 import com.example.airport_kiosk.common.exception.BusinessException;
 import com.example.airport_kiosk.common.exception.ErrorCode;
 import com.example.airport_kiosk.interfacelog.service.InterfaceLogService;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
+import java.io.SequenceInputStream;
 import java.io.StringWriter;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,7 +46,9 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.client.ResponseCreator;
 import org.springframework.web.client.RestClient;
@@ -203,6 +210,18 @@ class AirlineClientTest {
     }
 
     @Test
+    @DisplayName("본문을 읽다가 늦어지면 AIRLINE_TIMEOUT이 발생하고 원인 예외는 담지 않는다")
+    void throwsTimeoutWithoutCauseWhenBodyIsSlow() {
+        BusinessException e = catchBusinessException(respondWithSlowBody());
+
+        assertThat(e.getErrorCode()).isEqualTo(ErrorCode.AIRLINE_TIMEOUT);
+        assertThat(e.getCause()).isNull();
+        assertThat(stackTraceOf(e)).doesNotContain("SECRETBODY");
+        assertThat(loggedText()).contains("TIMEOUT", "SocketTimeoutException").doesNotContain("SECRETBODY", "KIM");
+        verifyLog("TIMEOUT", false);
+    }
+
+    @Test
     @DisplayName("통신 실패는 응답 본문이 없으므로 원인 예외를 담는다")
     void keepsCauseOnCommunicationFailure() {
         BusinessException connect = catchBusinessException(withException(new ConnectException("Connection refused")));
@@ -239,6 +258,23 @@ class AirlineClientTest {
         return logs.list.stream()
                 .map(event -> event.getFormattedMessage() + ThrowableProxyUtil.asString(event.getThrowableProxy()))
                 .collect(Collectors.joining());
+    }
+
+    // 본문의 앞부분만 보낸 뒤 시간 초과가 나는 응답
+    private ResponseCreator respondWithSlowBody() {
+        InputStream firstPart = new ByteArrayInputStream("{\"lastName\":\"SECRETBODY\",".getBytes(StandardCharsets.UTF_8));
+        InputStream timeout = new InputStream() {
+            @Override
+            public int read() throws IOException {
+                throw new SocketTimeoutException("Read timed out");
+            }
+        };
+        return request -> {
+            MockClientHttpResponse response =
+                    new MockClientHttpResponse(new SequenceInputStream(firstPart, timeout), HttpStatus.OK);
+            response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+            return response;
+        };
     }
 
     private BusinessException catchBusinessException(ResponseCreator response) {
