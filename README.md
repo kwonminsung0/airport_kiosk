@@ -157,7 +157,11 @@ erDiagram
 
 ### 키오스크 API
 
-작성 예정
+| 메서드 | 주소 | 설명 | 요청 | 응답 | 에러 |
+|---|---|---|---|---|---|
+| POST | /api/checkin/reservations/lookup | 예약 조회와 체크인 가능 여부 확인 (출발 24시간 전 ~ 1시간 전) | `{ pnr, lastName }` | `{ pnr, lastName, firstName, flightId, flightNo, depAirport, arrAirport, depTime, gate }` | 400 INVALID_INPUT, 404 RESERVATION_NOT_FOUND, 409 ALREADY_CHECKED_IN, 422 CHECKIN_NOT_AVAILABLE, 502 AIRLINE_ERROR, 504 AIRLINE_TIMEOUT |
+
+에러 응답 형식은 `{ "code": "RESERVATION_NOT_FOUND", "message": "예약을 찾을 수 없습니다. 예약번호와 성을 확인해 주세요." }`입니다. 예상하지 못한 오류는 500 INTERNAL_ERROR로 응답합니다.
 
 ## 테스트
 
