@@ -27,6 +27,16 @@ public class ErrorTestController {
         throw new BusinessException(code);
     }
 
+    @GetMapping("/test/custom-message")
+    public void customMessage() {
+        throw new BusinessException(ErrorCode.CHECKIN_NOT_AVAILABLE, "직접 만든 문구");
+    }
+
+    @GetMapping("/test/with-cause")
+    public void withCause() {
+        throw new BusinessException(ErrorCode.AIRLINE_ERROR, new IllegalStateException("SECRET_URL"));
+    }
+
     @GetMapping("/test/unexpected")
     public void unexpected() {
         throw new IllegalStateException("ORA-00942: SECRET_TABLE");

@@ -52,7 +52,25 @@ public class CheckinServiceImpl implements CheckinService {
         LocalDateTime opensAt = depTime.minus(openBefore);
         LocalDateTime closesAt = depTime.minus(closeBefore);
         if (now.isBefore(opensAt) || now.isAfter(closesAt)) {
-            throw new BusinessException(ErrorCode.CHECKIN_NOT_AVAILABLE);
+            throw new BusinessException(ErrorCode.CHECKIN_NOT_AVAILABLE, checkinTimeMessage());
         }
+    }
+
+    // 설정값으로 문구를 만들어, 설정을 바꾸면 안내도 함께 바뀌게 한다
+    private String checkinTimeMessage() {
+        return "체크인은 출발 " + toKorean(openBefore) + " 전부터 " + toKorean(closeBefore) + " 전까지 할 수 있습니다.";
+    }
+
+    // 24h → "24시간", 90m → "1시간 30분", 45m → "45분"
+    private String toKorean(Duration duration) {
+        long hours = duration.toHours();
+        int minutes = duration.toMinutesPart();
+        if (hours == 0) {
+            return minutes + "분";
+        }
+        if (minutes == 0) {
+            return hours + "시간";
+        }
+        return hours + "시간 " + minutes + "분";
     }
 }

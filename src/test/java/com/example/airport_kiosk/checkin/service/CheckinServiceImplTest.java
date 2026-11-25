@@ -20,6 +20,7 @@ import java.time.ZoneId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -30,12 +31,7 @@ class CheckinServiceImplTest {
 
     private final AirlineClient airlineClient = mock(AirlineClient.class);
     private final CheckinMapper checkinMapper = mock(CheckinMapper.class);
-    private final CheckinService checkinService = new CheckinServiceImpl(
-            airlineClient,
-            checkinMapper,
-            Clock.fixed(NOW.atZone(SEOUL).toInstant(), SEOUL),
-            Duration.ofHours(24),
-            Duration.ofHours(1));
+    private final CheckinService checkinService = createService(Duration.ofHours(24), Duration.ofHours(1));
 
     @Test
     @DisplayName("체크인할 수 있는 예약이면 예약과 항공편 정보를 돌려준다")
@@ -99,6 +95,26 @@ class CheckinServiceImplTest {
         givenDepartureAt(NOW.plusSeconds(secondsBeforeDeparture));
 
         assertErrorCode(ErrorCode.CHECKIN_NOT_AVAILABLE);
+    }
+
+    @ParameterizedTest(name = "{0} 전 ~ {1} 전 → {2}")
+    @DisplayName("체크인할 수 없을 때의 문구는 설정한 시간으로 만든다")
+    @CsvSource({
+            "PT24H, PT1H, 체크인은 출발 24시간 전부터 1시간 전까지 할 수 있습니다.",
+            "PT48H, PT1H30M, 체크인은 출발 48시간 전부터 1시간 30분 전까지 할 수 있습니다.",
+            "PT3H, PT45M, 체크인은 출발 3시간 전부터 45분 전까지 할 수 있습니다."
+    })
+    void createsMessageFromSettings(Duration openBefore, Duration closeBefore, String expected) {
+        givenDepartureAt(NOW.minusHours(1));
+
+        assertThatThrownBy(() -> createService(openBefore, closeBefore).lookupReservation("ABC123", "KIM"))
+                .isInstanceOf(BusinessException.class)
+                .hasMessage(expected);
+    }
+
+    private CheckinService createService(Duration openBefore, Duration closeBefore) {
+        return new CheckinServiceImpl(airlineClient, checkinMapper,
+                Clock.fixed(NOW.atZone(SEOUL).toInstant(), SEOUL), openBefore, closeBefore);
     }
 
     private void givenDepartureAt(LocalDateTime depTime) {

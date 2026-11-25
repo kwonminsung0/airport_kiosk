@@ -48,6 +48,23 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("BusinessException에 문구를 직접 넣으면 그 문구로 응답한다")
+    void respondsWithCustomMessage() throws Exception {
+        mockMvc.perform(get("/test/custom-message"))
+                .andExpect(status().is(422))
+                .andExpect(jsonPath("$.code").value("CHECKIN_NOT_AVAILABLE"))
+                .andExpect(jsonPath("$.message").value("직접 만든 문구"));
+    }
+
+    @Test
+    @DisplayName("BusinessException의 원인 예외 내용은 응답하지 않는다")
+    void hidesCauseMessage() throws Exception {
+        mockMvc.perform(get("/test/with-cause"))
+                .andExpect(status().is(502))
+                .andExpect(jsonPath("$.message").value(ErrorCode.AIRLINE_ERROR.getMessage()));
+    }
+
+    @Test
     @DisplayName("입력값 검증에 실패하면 400과 항목별 문구를 한 번씩 정해진 순서로 응답한다")
     void respondsWithValidationMessages() throws Exception {
         mockMvc.perform(post("/test/validate").contentType(MediaType.APPLICATION_JSON)

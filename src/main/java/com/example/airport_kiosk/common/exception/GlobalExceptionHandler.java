@@ -23,8 +23,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusiness(BusinessException e) {
-        ErrorCode errorCode = e.getErrorCode();
-        return toResponse(errorCode, errorCode.getMessage());
+        return toResponse(e.getErrorCode(), e.getMessage());
     }
 
     // @Valid 검증 실패. 같은 문구는 한 번만, 항상 같은 순서로 보여 준다
