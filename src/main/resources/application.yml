@@ -16,3 +16,8 @@ mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
+
+airline:
+  base-url: http://localhost:8080/mock-airline
+  connect-timeout: 1s
+  read-timeout: 3s
