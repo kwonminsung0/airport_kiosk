@@ -180,6 +180,7 @@ erDiagram
 |---|---|---|
 | 2026-11-24 | JAVA_HOME이 잡히지 않아 Gradle JVM 오류 | JDK 홈 경로로 `JAVA_HOME`을 다시 지정 |
 | 2026-11-25 | `data.sql` 추가 후 테스트에서 시퀀스를 찾지 못함 | 테스트 프로필에서 H2를 Oracle 모드로 지정 |
+| 2026-11-25 | 항공사 연계가 실패해도 서버 로그에 원인이 남지 않음 | 실패 처리에 `log.warn`을 추가하고 개인정보가 들어갈 수 있는 내용은 제외 |
 
 자세한 내용은 [docs/troubleshooting.md](docs/troubleshooting.md)에 있습니다.
 
