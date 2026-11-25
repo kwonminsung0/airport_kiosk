@@ -2,6 +2,7 @@ package com.example.airport_kiosk.airline.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
@@ -23,14 +25,20 @@ import ch.qos.logback.core.read.ListAppender;
 import com.example.airport_kiosk.common.exception.BusinessException;
 import com.example.airport_kiosk.common.exception.ErrorCode;
 import com.example.airport_kiosk.interfacelog.service.InterfaceLogService;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.MediaType;
@@ -175,6 +183,36 @@ class AirlineClientTest {
         assertThat(logs.list).isEmpty();
     }
 
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("응답을 받은 뒤의 오류는 원인 예외를 담지 않아 응답 본문이 예외에 남지 않는다")
+    @MethodSource("responsesWithName")
+    void doesNotKeepCauseAfterResponse(String name, ResponseCreator response) {
+        BusinessException e = catchBusinessException(response);
+
+        assertThat(e.getCause()).isNull();
+        assertThat(stackTraceOf(e)).doesNotContain("SECRETBODY");
+    }
+
+    static Stream<Arguments> responsesWithName() {
+        return Stream.of(
+                Arguments.of("404", withResourceNotFound().body("SECRETBODY")),
+                Arguments.of("400", withBadRequest().body("SECRETBODY")),
+                Arguments.of("500", withServerError().body("SECRETBODY")),
+                Arguments.of("JSON 아님", withSuccess("SECRETBODY", MediaType.APPLICATION_JSON)),
+                Arguments.of("타입이 다른 JSON", withSuccess("{\"flightId\":\"SECRETBODY\"}", MediaType.APPLICATION_JSON)));
+    }
+
+    @Test
+    @DisplayName("통신 실패는 응답 본문이 없으므로 원인 예외를 담는다")
+    void keepsCauseOnCommunicationFailure() {
+        BusinessException connect = catchBusinessException(withException(new ConnectException("Connection refused")));
+        assertThat(connect).hasRootCauseInstanceOf(ConnectException.class);
+
+        server.reset();
+        BusinessException timeout = catchBusinessException(withException(new SocketTimeoutException("Read timed out")));
+        assertThat(timeout).hasRootCauseInstanceOf(SocketTimeoutException.class);
+    }
+
     @Test
     @DisplayName("로그 저장에 실패해도 예약은 돌려준다")
     void returnsReservationEvenIfLogFails() {
@@ -201,6 +239,18 @@ class AirlineClientTest {
         return logs.list.stream()
                 .map(event -> event.getFormattedMessage() + ThrowableProxyUtil.asString(event.getThrowableProxy()))
                 .collect(Collectors.joining());
+    }
+
+    private BusinessException catchBusinessException(ResponseCreator response) {
+        server.expect(requestTo(URL)).andRespond(response);
+        return catchThrowableOfType(BusinessException.class, () -> airlineClient.findReservation("ABC123", "KIM"));
+    }
+
+    // 예외가 처리되지 않았을 때 서버가 기록하는 내용 (원인 포함)
+    private String stackTraceOf(Throwable e) {
+        StringWriter writer = new StringWriter();
+        e.printStackTrace(new PrintWriter(writer));
+        return writer.toString();
     }
 
     private void assertErrorCode(ResponseCreator response, ErrorCode expected) {

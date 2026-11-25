@@ -47,18 +47,23 @@ public class AirlineClient {
             // 통신은 정상이고 예약만 없는 경우이므로 연계는 성공으로 기록한다
             resultCode = String.valueOf(HttpStatus.NOT_FOUND.value());
             success = true;
-            throw new BusinessException(ErrorCode.RESERVATION_NOT_FOUND, e);
+            throw new BusinessException(ErrorCode.RESERVATION_NOT_FOUND);
         } catch (RestClientResponseException e) {
             resultCode = String.valueOf(e.getStatusCode().value());
             logFailure(resultCode, e);
-            throw new BusinessException(ErrorCode.AIRLINE_ERROR, e);
+            throw new BusinessException(ErrorCode.AIRLINE_ERROR);
         } catch (RestClientException e) {
             boolean timeout = isTimeout(e);
             if (timeout) {
                 resultCode = "TIMEOUT";
             }
             logFailure(resultCode, e);
-            throw new BusinessException(timeout ? ErrorCode.AIRLINE_TIMEOUT : ErrorCode.AIRLINE_ERROR, e);
+            ErrorCode errorCode = timeout ? ErrorCode.AIRLINE_TIMEOUT : ErrorCode.AIRLINE_ERROR;
+            // 응답을 받은 뒤의 오류는 응답 본문이 들어 있을 수 있어 원인 예외를 담지 않는다
+            if (e instanceof ResourceAccessException) {
+                throw new BusinessException(errorCode, e);
+            }
+            throw new BusinessException(errorCode);
         } finally {
             long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
             saveLog(pnr, resultCode, success, elapsedMs);
