@@ -21,3 +21,8 @@ airline:
   base-url: http://localhost:8080/mock-airline
   connect-timeout: 1s
   read-timeout: 3s
+
+checkin:
+  # 체크인은 출발 24시간 전부터 1시간 전까지 가능하다
+  open-before: 24h
+  close-before: 1h

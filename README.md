@@ -39,7 +39,7 @@ Claude Code를 보조 도구로 사용했습니다. 요구사항 정의, 설계 
    docker compose up -d --wait
    ```
 
-3. 애플리케이션을 실행합니다. 접속 주소는 `http://localhost:8080`입니다. (화면은 작성 예정)
+3. 애플리케이션을 실행합니다. 접속 주소는 `http://localhost:8080`입니다.
 
    ```bash
    ./gradlew bootRun
@@ -57,7 +57,14 @@ Claude Code를 보조 도구로 사용했습니다. 요구사항 정의, 설계 
 
 ## 주요 기능과 흐름
 
-작성 예정
+### 예약 조회
+
+1. 시작 화면에서 [셀프체크인]을 누르고 예약번호와 영문 성을 입력합니다.
+2. 키오스크 서버가 가상 항공사 API를 HTTP로 호출해 예약과 항공편을 확인하고, 호출 결과를 연계 로그에 남깁니다.
+3. 이미 체크인했는지, 체크인 가능 시간(출발 24시간 전 ~ 1시간 전)인지 차례로 확인합니다.
+4. 체크인할 수 있으면 예약 정보를, 아니면 안내 문구를 화면에 보여 줍니다.
+
+좌석 선택, 탑승권 발급, 셀프백드랍은 작성 예정입니다.
 
 ## ERD
 
@@ -157,7 +164,11 @@ erDiagram
 
 ### 키오스크 API
 
-작성 예정
+| 메서드 | 주소 | 설명 | 요청 | 응답 | 에러 |
+|---|---|---|---|---|---|
+| POST | /api/checkin/reservations/lookup | 예약 조회와 체크인 가능 여부 확인 (출발 24시간 전 ~ 1시간 전) | `{ pnr, lastName }` | `{ pnr, lastName, firstName, flightId, flightNo, depAirport, arrAirport, depTime, gate }` | 400 INVALID_INPUT, 404 RESERVATION_NOT_FOUND, 409 ALREADY_CHECKED_IN, 422 CHECKIN_NOT_AVAILABLE, 502 AIRLINE_ERROR, 504 AIRLINE_TIMEOUT |
+
+에러 응답 형식은 `{ "code": "RESERVATION_NOT_FOUND", "message": "예약을 찾을 수 없습니다. 예약번호와 성을 확인해 주세요." }`입니다. JSON이 아닌 요청은 415 UNSUPPORTED_MEDIA_TYPE, 예상하지 못한 오류는 500 INTERNAL_ERROR로 응답합니다.
 
 ## 테스트
 
@@ -169,6 +180,7 @@ erDiagram
 |---|---|---|
 | 2026-11-24 | JAVA_HOME이 잡히지 않아 Gradle JVM 오류 | JDK 홈 경로로 `JAVA_HOME`을 다시 지정 |
 | 2026-11-25 | `data.sql` 추가 후 테스트에서 시퀀스를 찾지 못함 | 테스트 프로필에서 H2를 Oracle 모드로 지정 |
+| 2026-11-25 | 항공사 연계가 실패해도 서버 로그에 원인이 남지 않음 | 실패 처리에 `log.warn`을 추가하고 개인정보가 들어갈 수 있는 내용은 제외 |
 
 자세한 내용은 [docs/troubleshooting.md](docs/troubleshooting.md)에 있습니다.
 
