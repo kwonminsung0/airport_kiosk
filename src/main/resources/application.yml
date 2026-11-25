@@ -1,3 +1,13 @@
 spring:
   application:
     name: airport_kiosk
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+    username: ${APP_USER}
+    password: ${APP_USER_PASSWORD}
+  sql:
+    init:
+      # 앱을 시작할 때마다 schema.sql, data.sql을 실행한다 (데이터 초기화)
+      mode: always
