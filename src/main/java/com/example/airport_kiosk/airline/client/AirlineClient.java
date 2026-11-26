@@ -45,6 +45,12 @@ public class AirlineClient {
                 log.warn("항공사 응답의 본문이 비어 있음: interfaceName={}", INTERFACE_NAME);
                 throw new BusinessException(ErrorCode.AIRLINE_ERROR);
             }
+            // 체크인 가능 시간을 판단하는 값이라 없으면 업무를 진행할 수 없다. 응답 해석 실패와 같게 기록한다
+            if (reservation.getDepTime() == null) {
+                log.warn("항공사 응답 오류: interfaceName={}, resultCode={}, cause=필수값 누락(depTime)",
+                        INTERFACE_NAME, resultCode);
+                throw new BusinessException(ErrorCode.AIRLINE_ERROR);
+            }
             resultCode = String.valueOf(HttpStatus.OK.value());
             success = true;
             return reservation;

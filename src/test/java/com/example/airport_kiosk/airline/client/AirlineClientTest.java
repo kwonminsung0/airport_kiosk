@@ -162,6 +162,44 @@ class AirlineClientTest {
         assertThat(loggedText()).contains("InvalidMediaTypeException").doesNotContain("SECRETBODY", "KIM");
     }
 
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("출발 시각(depTime)이 없으면 AIRLINE_ERROR가 발생하고 실패로 기록한다")
+    @MethodSource("bodiesWithoutDepTime")
+    void throwsAirlineErrorWhenDepTimeMissing(String name, String body) {
+        assertErrorCode(withSuccess(body, MediaType.APPLICATION_JSON), ErrorCode.AIRLINE_ERROR);
+        verifyLog("ERROR", false);
+    }
+
+    static Stream<Arguments> bodiesWithoutDepTime() {
+        return Stream.of(
+                Arguments.of("depTime 없음", BODY.replace(",\"depTime\":\"2026-11-25T22:45:55\"", "")),
+                Arguments.of("depTime이 null", BODY.replace("\"2026-11-25T22:45:55\"", "null")));
+    }
+
+    // 0kg으로 들어오면 백드랍에서 모든 수하물이 거절되므로, 필드 타입이나 라이브러리 설정이 바뀌어도 이 동작을 지킨다
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("무료 수하물 허용량(baggageAllowanceKg)이 없으면 AIRLINE_ERROR가 발생하고 실패로 기록한다")
+    @MethodSource("bodiesWithoutBaggageAllowance")
+    void throwsAirlineErrorWhenBaggageAllowanceMissing(String name, String body) {
+        assertErrorCode(withSuccess(body, MediaType.APPLICATION_JSON), ErrorCode.AIRLINE_ERROR);
+        verifyLog("ERROR", false);
+    }
+
+    static Stream<Arguments> bodiesWithoutBaggageAllowance() {
+        return Stream.of(
+                Arguments.of("baggageAllowanceKg 없음", BODY.replace("\"baggageAllowanceKg\":23,", "")),
+                Arguments.of("baggageAllowanceKg가 null", BODY.replace("\"baggageAllowanceKg\":23", "\"baggageAllowanceKg\":null")));
+    }
+
+    @Test
+    @DisplayName("출발 시각이 없으면 빠진 값의 이름만 남기고 응답 본문은 남기지 않는다")
+    void logsMissingDepTimeWithoutBody() {
+        assertErrorCode(withSuccess(bodyWithoutDepTime("KIM"), MediaType.APPLICATION_JSON), ErrorCode.AIRLINE_ERROR);
+
+        assertThat(logs.list).extracting(ILoggingEvent::getLevel).containsExactly(Level.WARN);
+        assertThat(loggedText()).contains("ERROR", "depTime").doesNotContain("KIM");
+    }
+
     @Test
     @DisplayName("응답 본문이 비어 있으면 AIRLINE_ERROR가 발생하고 실패로 기록한다")
     void throwsAirlineErrorOnEmptyBody() {
@@ -239,7 +277,13 @@ class AirlineClientTest {
                 Arguments.of("500", withServerError().body("SECRETBODY")),
                 Arguments.of("JSON 아님", withSuccess("SECRETBODY", MediaType.APPLICATION_JSON)),
                 Arguments.of("타입이 다른 JSON", withSuccess("{\"flightId\":\"SECRETBODY\"}", MediaType.APPLICATION_JSON)),
-                Arguments.of("잘못된 Content-Type", withContentType("application/json; charset=SECRETBODY")));
+                Arguments.of("잘못된 Content-Type", withContentType("application/json; charset=SECRETBODY")),
+                Arguments.of("depTime 없음", withSuccess(bodyWithoutDepTime("SECRETBODY"), MediaType.APPLICATION_JSON)));
+    }
+
+    // 출발 시각이 빠진 정상 형식의 본문. 성 자리에 원하는 값을 넣는다
+    private static String bodyWithoutDepTime(String lastName) {
+        return BODY.replace(",\"depTime\":\"2026-11-25T22:45:55\"", "").replace("\"KIM\"", "\"" + lastName + "\"");
     }
 
     // 지정한 Content-Type 헤더를 가진 200 응답
