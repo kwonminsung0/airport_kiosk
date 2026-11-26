@@ -46,6 +46,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpMethod;
@@ -135,6 +136,32 @@ class AirlineClientTest {
         verifyLog("ERROR", false);
     }
 
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("응답의 Content-Type 형식이 잘못되면 AIRLINE_ERROR가 발생하고 실패로 기록한다")
+    @ValueSource(strings = {"not-a-type", "application/", "application/json; charset=nope"})
+    void throwsAirlineErrorOnInvalidContentType(String contentType) {
+        assertErrorCode(withContentType(contentType), ErrorCode.AIRLINE_ERROR);
+        verifyLog("ERROR", false);
+    }
+
+    // 형식은 맞지만 해석할 수 없는 Content-Type. RestClientException으로 처리되는 경우가 바뀌지 않게 남겨 둔다
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("응답의 Content-Type을 해석할 수 없으면 AIRLINE_ERROR가 발생하고 실패로 기록한다")
+    @ValueSource(strings = {"text/html"})
+    void throwsAirlineErrorOnUnreadableContentType(String contentType) {
+        assertErrorCode(withContentType(contentType), ErrorCode.AIRLINE_ERROR);
+        verifyLog("ERROR", false);
+    }
+
+    @Test
+    @DisplayName("Content-Type 형식이 잘못되면 예외 종류만 남기고 헤더 값은 남기지 않는다")
+    void logsInvalidContentTypeWithoutValue() {
+        assertErrorCode(withContentType("application/json; charset=SECRETBODY"), ErrorCode.AIRLINE_ERROR);
+
+        assertThat(logs.list).extracting(ILoggingEvent::getLevel).containsExactly(Level.WARN);
+        assertThat(loggedText()).contains("InvalidMediaTypeException").doesNotContain("SECRETBODY", "KIM");
+    }
+
     @Test
     @DisplayName("응답 본문이 비어 있으면 AIRLINE_ERROR가 발생하고 실패로 기록한다")
     void throwsAirlineErrorOnEmptyBody() {
@@ -211,7 +238,13 @@ class AirlineClientTest {
                 Arguments.of("400", withBadRequest().body("SECRETBODY")),
                 Arguments.of("500", withServerError().body("SECRETBODY")),
                 Arguments.of("JSON 아님", withSuccess("SECRETBODY", MediaType.APPLICATION_JSON)),
-                Arguments.of("타입이 다른 JSON", withSuccess("{\"flightId\":\"SECRETBODY\"}", MediaType.APPLICATION_JSON)));
+                Arguments.of("타입이 다른 JSON", withSuccess("{\"flightId\":\"SECRETBODY\"}", MediaType.APPLICATION_JSON)),
+                Arguments.of("잘못된 Content-Type", withContentType("application/json; charset=SECRETBODY")));
+    }
+
+    // 지정한 Content-Type 헤더를 가진 200 응답
+    private static ResponseCreator withContentType(String contentType) {
+        return withSuccess().body(BODY).header("Content-Type", contentType);
     }
 
     @Test
