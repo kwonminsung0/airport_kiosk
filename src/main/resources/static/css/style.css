@@ -1,45 +1,386 @@
-body {
-    max-width: 600px;
-    margin: 40px auto;
-    padding: 0 16px;
-    font-family: sans-serif;
-    font-size: 18px;
+/*
+ * 키오스크 공통 스타일 (가로형 1920×1080 기준)
+ * - 크기: 모든 크기를 rem으로 쓴다. 1rem = html 글자 크기(키오스크 20px, 노트북 15px)
+ *   노트북에서는 아래 미디어 쿼리의 html 글자 크기 한 줄만 바뀌고, 화면 전체가 같은 비율로 작아진다.
+ * - 글자 크기와 여백은 아래 단계 변수만 쓴다.
+ * - 색: 흰 바탕 중심. 대표 색(더스티 블루)은 버튼·현재 단계·아이콘 같은 작은 면적에만 쓴다.
+ */
+html {
+    font-size: 20px;
 }
 
-label,
-input,
-button,
-.button {
-    display: block;
+@media (max-width: 1600px) {
+    html {
+        font-size: 15px;
+    }
+}
+
+:root {
+    --color-primary: #4f72a3;        /* 대표 색: 주요 버튼, 현재 단계, 아이콘 (흰 글자 대비 4.92:1) */
+    --color-primary-soft: #edf2f8;   /* 입력칸 초점 둘레 */
+    --color-bg: #ffffff;
+    --color-panel: #f4f6f8;          /* 안내 칸, 준비 중 카드 */
+    --color-text: #1f2329;           /* 본문 (흰 바탕 대비 15.78:1) */
+    --color-muted: #555f6b;          /* 보조 글자 (흰 바탕 대비 6.00:1) */
+    --color-line: #d3d8de;           /* 테두리, 구분선 */
+    --color-badge: #e4e8ec;
+    --color-error: #b3261e;          /* 오류 글자 (오류 바탕 대비 5.72:1) */
+    --color-error-bg: #fdecea;
+
+    --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    --content-width: 80rem;          /* 내용 최대 너비 (키오스크 1600px) */
+    --radius: 1rem;
+
+    /* 글자 크기 5단계 (약 1.25~1.4배 간격). 괄호는 키오스크(1rem = 20px) 기준 */
+    --text-xl: 3.6rem;    /* 72px: 시작 화면 서비스 이름 */
+    --text-lg: 2.8rem;    /* 56px: 화면 제목 */
+    --text-md: 2rem;      /* 40px: 버튼, 입력칸, 소제목, 로고 */
+    --text-base: 1.5rem;  /* 30px: 본문, 라벨, 안내, 오류, 진행 단계 */
+    --text-sm: 1.2rem;    /* 24px: 진행 단계 번호 */
+
+    /* 여백 6단계. margin·padding·gap은 이 변수만 쓴다. 괄호는 키오스크 기준 */
+    --space-1: 0.4rem;    /* 8px: 라벨과 입력칸, 배지 안쪽 위아래 */
+    --space-2: 0.8rem;    /* 16px: 아이콘과 글자, 문단 사이 */
+    --space-3: 1.2rem;    /* 24px: 입력칸 사이, 입력칸 안쪽 좌우 */
+    --space-4: 2rem;      /* 40px: 화면 좌우, 제목 아래, 카드·칸 사이 */
+    --space-5: 3.2rem;    /* 64px: 시작 화면 카드 안쪽 */
+    --space-6: 4rem;      /* 80px: 카드 설명과 버튼 사이 */
+}
+
+*,
+*::before,
+*::after {
     box-sizing: border-box;
+}
+
+/* hidden 속성(JS가 오류 안내·예약 정보를 숨길 때 사용)이 아래 display 설정에 덮이지 않게 한다 */
+[hidden] {
+    display: none !important;
+}
+
+body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font);
+    font-size: var(--text-base);
+    line-height: 1.5;
+    /* 한국어를 글자가 아니라 단어 단위로 줄바꿈한다 ("주세 / 요." 방지) */
+    word-break: keep-all;
+}
+
+.wrap {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    /* 좌우만 정한다. main의 위아래 여백을 덮어쓰지 않게 */
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+}
+
+/* 상단 띠: 왼쪽 로고, 오른쪽 진행 단계 */
+.top {
+    border-bottom: 1px solid var(--color-line);
+}
+
+.top .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 6rem;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.logo svg {
+    flex: none;
+    width: 2.6rem;
+    height: 2.6rem;
+    color: var(--color-primary);
+}
+
+.logo-ko {
+    font-size: var(--text-md);
+    font-weight: 800;
+}
+
+.logo-dot,
+.logo-en {
+    color: var(--color-muted);
+    font-size: var(--text-base);
+    font-weight: 600;
+}
+
+/* 진행 단계: 현재 단계만 대표 색 */
+.steps {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.steps li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-muted);
+    font-size: var(--text-base);
+    font-weight: 600;
+}
+
+.step-no {
+    display: grid;
+    place-items: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 2px solid var(--color-line);
+    border-radius: 50%;
+    font-size: var(--text-sm);
+    font-weight: 800;
+}
+
+.steps .current {
+    color: var(--color-primary);
+    font-weight: 800;
+}
+
+.steps .current .step-no {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+    color: #ffffff;
+}
+
+.step-line {
+    flex: 0 0 4rem;
+    height: 2px;
+    background: var(--color-line);
+}
+
+main {
+    padding-top: var(--space-4);
+    padding-bottom: var(--space-4);
+}
+
+h1 {
+    margin: 0 0 var(--space-4);
+    font-size: var(--text-lg);
+    line-height: 1.25;
+}
+
+h2 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-md);
+}
+
+/* 버튼 */
+.button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    margin: 8px 0;
-    font-size: 18px;
+    height: 6rem;
+    border: 0;
+    border-radius: var(--radius);
+    background: var(--color-primary);
+    color: #ffffff;
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
 }
 
-input,
-button,
-.button {
-    padding: 12px;
+/* 조회 중(JS가 disabled로 바꿈)에는 흐리게 */
+.button:disabled {
+    opacity: 0.5;
+    cursor: wait;
 }
 
-.button {
-    border: 1px solid #333;
-    color: #000;
-    text-align: center;
+.button-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 4.4rem;
+    padding: 0 var(--space-4);
+    border: 2px solid var(--color-line);
+    border-radius: var(--radius);
+    background: #ffffff;
+    color: var(--color-text);
+    font-weight: 700;
     text-decoration: none;
 }
 
+a:focus-visible,
+button:focus-visible {
+    outline: 0.25rem solid var(--color-text);
+    outline-offset: 0.25rem;
+}
+
+/* 시작 화면: 서비스 카드 2개. 높이는 내용에 맞추고, 설명과 버튼 사이는 gap으로 둔다 */
+.services {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+}
+
+.service {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--space-6);
+    padding: var(--space-5);
+    border: 2px solid var(--color-line);
+    border-radius: 1.4rem;
+    background: #ffffff;
+    color: var(--color-text);
+    font: inherit;
+    text-align: left;
+    text-decoration: none;
+}
+
+.service-name {
+    display: block;
+    font-size: var(--text-xl);
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+/* 외국인 승객용 영어 이름 */
+.service-en {
+    display: block;
+    color: var(--color-muted);
+    font-weight: 700;
+}
+
+.service-desc {
+    display: block;
+    margin-top: var(--space-2);
+    color: var(--color-muted);
+}
+
+.service:disabled {
+    border-color: var(--color-panel);
+    background: var(--color-panel);
+}
+
+.service:disabled .service-name {
+    color: var(--color-muted);
+}
+
+.badge {
+    align-self: flex-start;
+    padding: var(--space-1) var(--space-3);
+    border-radius: 999px;
+    background: var(--color-badge);
+    color: var(--color-muted);
+    font-weight: 700;
+}
+
+/* 오류 안내: 아래 2단 영역과 같은 너비의 한 줄 띠 */
 .message {
-    padding: 12px;
-    border: 1px solid #c00;
-    color: #c00;
+    margin: 0 0 var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border-left: 0.5rem solid var(--color-error);
+    border-radius: 0.6rem;
+    background: var(--color-error-bg);
+    color: var(--color-error);
+    font-weight: 700;
 }
 
-dt {
-    font-weight: bold;
+/* 조회 화면 2단: 왼쪽 입력, 오른쪽 예약 정보 또는 안내.
+   두 칸의 높이가 같아져서 오른쪽 칸 아래 끝이 왼쪽 조회 버튼 아래 끝과 맞는다 */
+.columns {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: var(--space-4);
 }
 
-dd {
-    margin: 0 0 8px;
+label {
+    display: block;
+    margin: 0 0 var(--space-1);
+    font-weight: 700;
+}
+
+input {
+    display: block;
+    width: 100%;
+    height: 5.6rem;
+    margin: 0 0 var(--space-3);
+    padding: 0 var(--space-3);
+    border: 2px solid var(--color-line);
+    border-radius: 0.8rem;
+    color: var(--color-text);
+    font: inherit;
+    font-size: var(--text-md);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 0.3rem var(--color-primary-soft);
+}
+
+.side {
+    display: flex;
+    flex-direction: column;
+}
+
+.guide,
+.result {
+    flex: 1;
+    padding: var(--space-4);
+    border-radius: var(--radius);
+}
+
+.guide {
+    background: var(--color-panel);
+}
+
+.guide p {
+    margin: 0 0 var(--space-2);
+}
+
+.example {
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+/* 조회에 성공하면 예약 정보가 보이고, 그 자리의 입력 안내는 숨긴다 (JS 변경 없이 CSS로) */
+.result {
+    border: 2px solid var(--color-primary);
+}
+
+.result:not([hidden]) + .guide {
+    display: none;
+}
+
+.result dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-2) var(--space-3);
+    margin: 0;
+}
+
+.result dt {
+    color: var(--color-muted);
+    font-weight: 600;
+}
+
+.result dd {
+    margin: 0;
+    font-weight: 800;
+}
+
+/* 화면 아래 버튼 줄 (처음으로) */
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: var(--space-4);
 }

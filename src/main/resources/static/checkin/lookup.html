@@ -2,35 +2,69 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>예약 조회</title>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <p id="message" class="message" role="alert" hidden></p>
+    <header class="top">
+        <div class="wrap">
+            <span class="logo">
+                <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" transform="rotate(45 24 24)" d="M24 3c1.9 0 3 2.2 3 5v11l16 9v4l-16-5v10l5 4v3l-8-2-8 2v-3l5-4V27l-16 5v-4l16-9V8c0-2.8 1.1-5 3-5z"/></svg>
+                <span class="logo-ko">셀프 체크인</span>
+                <span class="logo-dot">·</span>
+                <span class="logo-en">Self Check-in</span>
+            </span>
+            <ol class="steps" aria-label="진행 단계">
+                <li class="current" aria-current="step"><span class="step-no">1</span>예약 조회</li>
+                <li class="step-line" aria-hidden="true"></li>
+                <li><span class="step-no">2</span>좌석 선택</li>
+                <li class="step-line" aria-hidden="true"></li>
+                <li><span class="step-no">3</span>탑승권</li>
+            </ol>
+        </div>
+    </header>
 
-    <h1>예약 조회</h1>
-    <form id="lookup-form" autocomplete="off">
-        <label for="pnr">예약번호 (영문·숫자 6자리)</label>
-        <input id="pnr" type="text">
-        <label for="last-name">영문 성</label>
-        <input id="last-name" type="text">
-        <button id="lookup-button" type="submit">조회</button>
-    </form>
+    <main class="wrap">
+        <h1>예약 조회</h1>
+        <p id="message" class="message" role="alert" hidden></p>
 
-    <section id="result" hidden>
-        <h2>예약 정보</h2>
-        <dl>
-            <dt>예약번호</dt><dd id="result-pnr"></dd>
-            <dt>이름</dt><dd id="result-name"></dd>
-            <dt>편명</dt><dd id="result-flight-no"></dd>
-            <dt>구간</dt><dd id="result-route"></dd>
-            <dt>출발 시각</dt><dd id="result-dep-time"></dd>
-            <dt>게이트</dt><dd id="result-gate"></dd>
-        </dl>
-    </section>
+        <div class="columns">
+            <form id="lookup-form" autocomplete="off">
+                <label for="pnr">예약번호 (영문·숫자 6자리)</label>
+                <input id="pnr" type="text">
+                <label for="last-name">영문 성</label>
+                <input id="last-name" type="text">
+                <button id="lookup-button" class="button" type="submit">조회</button>
+            </form>
 
-    <a href="/">처음으로</a>
+            <div class="side">
+                <section id="result" class="result" hidden>
+                    <h2>예약 정보</h2>
+                    <dl>
+                        <dt>예약번호</dt><dd id="result-pnr"></dd>
+                        <dt>이름</dt><dd id="result-name"></dd>
+                        <dt>편명</dt><dd id="result-flight-no"></dd>
+                        <dt>구간</dt><dd id="result-route"></dd>
+                        <dt>출발 시각</dt><dd id="result-dep-time"></dd>
+                        <dt>게이트</dt><dd id="result-gate"></dd>
+                    </dl>
+                </section>
+                <aside class="guide">
+                    <h2>입력 안내</h2>
+                    <p>예약번호는 전자항공권(e-티켓) 확인서에 있는 영문·숫자 6자리입니다.</p>
+                    <p class="example">예) ABC123</p>
+                    <p>성은 여권에 적힌 영문 그대로 입력해 주세요.</p>
+                </aside>
+            </div>
+        </div>
+
+        <div class="actions">
+            <a class="button-secondary" href="/">처음으로</a>
+        </div>
+    </main>
+
     <script src="/js/lookup.js"></script>
 </body>
 </html>
