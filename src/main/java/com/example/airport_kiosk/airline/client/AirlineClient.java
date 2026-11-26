@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
@@ -32,8 +33,11 @@ public class AirlineClient {
         String resultCode = "ERROR";
         boolean success = false;
         try {
-            AirlineReservation reservation = airlineRestClient.get()
-                    .uri("/reservations?pnr={pnr}&lastName={lastName}", pnr, lastName)
+            // 성이 주소와 접속 기록에 남지 않도록 POST 본문으로 보낸다
+            AirlineReservation reservation = airlineRestClient.post()
+                    .uri("/reservations/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new AirlineReservationRequest(pnr, lastName))
                     .retrieve()
                     .body(AirlineReservation.class);
             if (reservation == null) {

@@ -10,6 +10,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
@@ -46,16 +48,19 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.test.web.client.ResponseActions;
 import org.springframework.test.web.client.ResponseCreator;
 import org.springframework.web.client.RestClient;
 
 class AirlineClientTest {
 
-    private static final String URL = "http://airline.test/reservations?pnr=ABC123&lastName=KIM";
+    // 성이 주소(쿼리 문자열)에 남지 않도록 주소에는 값을 넣지 않는다
+    private static final String URL = "http://airline.test/reservations/search";
     private static final String BODY = """
             {"pnr":"ABC123","lastName":"KIM","firstName":"MINSU","baggageAllowanceKg":23,"flightId":1,
              "flightNo":"ZZ101","depAirport":"ICN","arrAirport":"NRT","depTime":"2026-11-25T22:45:55","gate":"12"}
@@ -243,14 +248,32 @@ class AirlineClientTest {
     }
 
     @Test
-    @DisplayName("성에 특수문자가 있어도 인코딩해서 보낸다")
-    void encodesLastName() {
-        server.expect(requestTo("http://airline.test/reservations?pnr=ABC123&lastName=O%27NEIL%26x%3D1"))
-                .andRespond(withSuccess(BODY, MediaType.APPLICATION_JSON));
+    @DisplayName("예약번호와 성은 주소가 아니라 POST 요청 본문에 JSON으로 담아 보낸다")
+    void sendsLastNameInBody() {
+        expectSearch("ABC123", "KIM").andRespond(withSuccess(BODY, MediaType.APPLICATION_JSON));
+
+        airlineClient.findReservation("ABC123", "KIM");
+
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("성에 특수문자가 있어도 본문에 그대로 담아 보낸다")
+    void sendsSpecialCharactersInBody() {
+        expectSearch("ABC123", "O'NEIL&x=1").andRespond(withSuccess(BODY, MediaType.APPLICATION_JSON));
 
         airlineClient.findReservation("ABC123", "O'NEIL&x=1");
 
         server.verify();
+    }
+
+    // 주소에 쿼리 문자열이 없고, POST 본문이 정확히 { pnr, lastName }인 요청만 받는다
+    private ResponseActions expectSearch(String pnr, String lastName) {
+        String body = "{\"pnr\":\"" + pnr + "\",\"lastName\":\"" + lastName + "\"}";
+        return server.expect(requestTo(URL))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().json(body, true));
     }
 
     // 로그 문구와 예외 내용(원인 포함)을 합친 문자열
