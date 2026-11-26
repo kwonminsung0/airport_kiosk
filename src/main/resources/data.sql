@@ -1,18 +1,20 @@
 -- 시연용 데이터. 출발 시각은 앱을 시작한 시각을 기준으로 계산한다.
+-- 실제 항공편 출발 시각은 분 단위라서 초를 버린다. TRUNC(날짜, 'MI')는 H2(MODE=Oracle)에서 실행 오류가 나므로,
+-- H2와 Oracle 모두에서 동작하는 TO_DATE(TO_CHAR(..., 'YYYYMMDDHH24MI'), 'YYYYMMDDHH24MI')를 쓴다.
 -- 편명과 이름은 모두 가상이다.
 
 -- 1. 항공편
 -- ZZ101: 정상 체크인 (출발 5시간 전)
 INSERT INTO FLIGHT (flight_id, flight_no, dep_airport, arr_airport, dep_time, gate, seat_rows, seat_cols)
-VALUES (SEQ_FLIGHT.NEXTVAL, 'ZZ101', 'ICN', 'NRT', SYSDATE + INTERVAL '5' HOUR, '12', 5, 4);
+VALUES (SEQ_FLIGHT.NEXTVAL, 'ZZ101', 'ICN', 'NRT', TO_DATE(TO_CHAR(SYSDATE + INTERVAL '5' HOUR, 'YYYYMMDDHH24MI'), 'YYYYMMDDHH24MI'), '12', 5, 4);
 
 -- ZZ102: 체크인 마감 후 (422)
 INSERT INTO FLIGHT (flight_id, flight_no, dep_airport, arr_airport, dep_time, gate, seat_rows, seat_cols)
-VALUES (SEQ_FLIGHT.NEXTVAL, 'ZZ102', 'ICN', 'KIX', SYSDATE + INTERVAL '30' MINUTE, '15', 5, 4);
+VALUES (SEQ_FLIGHT.NEXTVAL, 'ZZ102', 'ICN', 'KIX', TO_DATE(TO_CHAR(SYSDATE + INTERVAL '30' MINUTE, 'YYYYMMDDHH24MI'), 'YYYYMMDDHH24MI'), '15', 5, 4);
 
 -- ZZ103: 체크인 시작 전 (422)
 INSERT INTO FLIGHT (flight_id, flight_no, dep_airport, arr_airport, dep_time, gate, seat_rows, seat_cols)
-VALUES (SEQ_FLIGHT.NEXTVAL, 'ZZ103', 'ICN', 'FUK', SYSDATE + INTERVAL '30' HOUR, '21', 5, 4);
+VALUES (SEQ_FLIGHT.NEXTVAL, 'ZZ103', 'ICN', 'FUK', TO_DATE(TO_CHAR(SYSDATE + INTERVAL '30' HOUR, 'YYYYMMDDHH24MI'), 'YYYYMMDDHH24MI'), '21', 5, 4);
 
 -- 2. 예약
 -- ABC123: 정상

@@ -10,11 +10,15 @@ import com.example.airport_kiosk.common.exception.ErrorCode;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class CheckinServiceImpl implements CheckinService {
+
+    private static final DateTimeFormatter OPENS_AT_FORMAT = DateTimeFormatter.ofPattern("M월 d일 HH:mm");
 
     private final AirlineClient airlineClient;
     private final CheckinMapper checkinMapper;
@@ -47,18 +51,33 @@ public class CheckinServiceImpl implements CheckinService {
     }
 
     // 시작 시각과 마감 시각 정각은 체크인할 수 있다
+    // 오류 코드는 하나로 두고, 승객이 다음에 할 일을 알 수 있게 시작 전과 마감 후의 문구를 나눈다
     private void validateCheckinTime(LocalDateTime depTime) {
         LocalDateTime now = LocalDateTime.now(clock);
         LocalDateTime opensAt = depTime.minus(openBefore);
         LocalDateTime closesAt = depTime.minus(closeBefore);
-        if (now.isBefore(opensAt) || now.isAfter(closesAt)) {
-            throw new BusinessException(ErrorCode.CHECKIN_NOT_AVAILABLE, checkinTimeMessage());
+        if (now.isBefore(opensAt)) {
+            throw new BusinessException(ErrorCode.CHECKIN_NOT_AVAILABLE, notOpenYetMessage(opensAt));
+        }
+        if (now.isAfter(closesAt)) {
+            throw new BusinessException(ErrorCode.CHECKIN_NOT_AVAILABLE, closedMessage());
         }
     }
 
     // 설정값으로 문구를 만들어, 설정을 바꾸면 안내도 함께 바뀌게 한다
-    private String checkinTimeMessage() {
-        return "체크인은 출발 " + toKorean(openBefore) + " 전부터 " + toKorean(closeBefore) + " 전까지 할 수 있습니다.";
+    private String notOpenYetMessage(LocalDateTime opensAt) {
+        return "아직 체크인 시작 전입니다. " + OPENS_AT_FORMAT.format(roundUpToMinute(opensAt))
+                + "부터(출발 " + toKorean(openBefore) + " 전) 체크인할 수 있습니다.";
+    }
+
+    private String closedMessage() {
+        return "체크인이 마감되었습니다(출발 " + toKorean(closeBefore) + " 전 마감). 항공사 카운터로 문의해 주세요.";
+    }
+
+    // 15:00:30 → 15:01, 15:00:00 → 15:00 (내림으로 표시하면 안내한 시각에 와도 아직 열리기 전이다)
+    private LocalDateTime roundUpToMinute(LocalDateTime time) {
+        LocalDateTime truncated = time.truncatedTo(ChronoUnit.MINUTES);
+        return truncated.equals(time) ? time : truncated.plusMinutes(1);
     }
 
     // 24h → "24시간", 90m → "1시간 30분", 45m → "45분"
