@@ -10,6 +10,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withException;
@@ -44,18 +46,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.http.client.MockClientHttpResponse;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.test.web.client.ResponseActions;
 import org.springframework.test.web.client.ResponseCreator;
 import org.springframework.web.client.RestClient;
 
 class AirlineClientTest {
 
-    private static final String URL = "http://airline.test/reservations?pnr=ABC123&lastName=KIM";
+    // 성이 주소(쿼리 문자열)에 남지 않도록 주소에는 값을 넣지 않는다
+    private static final String URL = "http://airline.test/reservations/search";
     private static final String BODY = """
             {"pnr":"ABC123","lastName":"KIM","firstName":"MINSU","baggageAllowanceKg":23,"flightId":1,
              "flightNo":"ZZ101","depAirport":"ICN","arrAirport":"NRT","depTime":"2026-11-25T22:45:55","gate":"12"}
@@ -128,6 +134,70 @@ class AirlineClientTest {
     void throwsAirlineErrorOnInvalidBody() {
         assertErrorCode(withSuccess("not json", MediaType.APPLICATION_JSON), ErrorCode.AIRLINE_ERROR);
         verifyLog("ERROR", false);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("응답의 Content-Type 형식이 잘못되면 AIRLINE_ERROR가 발생하고 실패로 기록한다")
+    @ValueSource(strings = {"not-a-type", "application/", "application/json; charset=nope"})
+    void throwsAirlineErrorOnInvalidContentType(String contentType) {
+        assertErrorCode(withContentType(contentType), ErrorCode.AIRLINE_ERROR);
+        verifyLog("ERROR", false);
+    }
+
+    // 형식은 맞지만 해석할 수 없는 Content-Type. RestClientException으로 처리되는 경우가 바뀌지 않게 남겨 둔다
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("응답의 Content-Type을 해석할 수 없으면 AIRLINE_ERROR가 발생하고 실패로 기록한다")
+    @ValueSource(strings = {"text/html"})
+    void throwsAirlineErrorOnUnreadableContentType(String contentType) {
+        assertErrorCode(withContentType(contentType), ErrorCode.AIRLINE_ERROR);
+        verifyLog("ERROR", false);
+    }
+
+    @Test
+    @DisplayName("Content-Type 형식이 잘못되면 예외 종류만 남기고 헤더 값은 남기지 않는다")
+    void logsInvalidContentTypeWithoutValue() {
+        assertErrorCode(withContentType("application/json; charset=SECRETBODY"), ErrorCode.AIRLINE_ERROR);
+
+        assertThat(logs.list).extracting(ILoggingEvent::getLevel).containsExactly(Level.WARN);
+        assertThat(loggedText()).contains("InvalidMediaTypeException").doesNotContain("SECRETBODY", "KIM");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("출발 시각(depTime)이 없으면 AIRLINE_ERROR가 발생하고 실패로 기록한다")
+    @MethodSource("bodiesWithoutDepTime")
+    void throwsAirlineErrorWhenDepTimeMissing(String name, String body) {
+        assertErrorCode(withSuccess(body, MediaType.APPLICATION_JSON), ErrorCode.AIRLINE_ERROR);
+        verifyLog("ERROR", false);
+    }
+
+    static Stream<Arguments> bodiesWithoutDepTime() {
+        return Stream.of(
+                Arguments.of("depTime 없음", BODY.replace(",\"depTime\":\"2026-11-25T22:45:55\"", "")),
+                Arguments.of("depTime이 null", BODY.replace("\"2026-11-25T22:45:55\"", "null")));
+    }
+
+    // 0kg으로 들어오면 백드랍에서 모든 수하물이 거절되므로, 필드 타입이나 라이브러리 설정이 바뀌어도 이 동작을 지킨다
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("무료 수하물 허용량(baggageAllowanceKg)이 없으면 AIRLINE_ERROR가 발생하고 실패로 기록한다")
+    @MethodSource("bodiesWithoutBaggageAllowance")
+    void throwsAirlineErrorWhenBaggageAllowanceMissing(String name, String body) {
+        assertErrorCode(withSuccess(body, MediaType.APPLICATION_JSON), ErrorCode.AIRLINE_ERROR);
+        verifyLog("ERROR", false);
+    }
+
+    static Stream<Arguments> bodiesWithoutBaggageAllowance() {
+        return Stream.of(
+                Arguments.of("baggageAllowanceKg 없음", BODY.replace("\"baggageAllowanceKg\":23,", "")),
+                Arguments.of("baggageAllowanceKg가 null", BODY.replace("\"baggageAllowanceKg\":23", "\"baggageAllowanceKg\":null")));
+    }
+
+    @Test
+    @DisplayName("출발 시각이 없으면 빠진 값의 이름만 남기고 응답 본문은 남기지 않는다")
+    void logsMissingDepTimeWithoutBody() {
+        assertErrorCode(withSuccess(bodyWithoutDepTime("KIM"), MediaType.APPLICATION_JSON), ErrorCode.AIRLINE_ERROR);
+
+        assertThat(logs.list).extracting(ILoggingEvent::getLevel).containsExactly(Level.WARN);
+        assertThat(loggedText()).contains("ERROR", "depTime").doesNotContain("KIM");
     }
 
     @Test
@@ -206,7 +276,19 @@ class AirlineClientTest {
                 Arguments.of("400", withBadRequest().body("SECRETBODY")),
                 Arguments.of("500", withServerError().body("SECRETBODY")),
                 Arguments.of("JSON 아님", withSuccess("SECRETBODY", MediaType.APPLICATION_JSON)),
-                Arguments.of("타입이 다른 JSON", withSuccess("{\"flightId\":\"SECRETBODY\"}", MediaType.APPLICATION_JSON)));
+                Arguments.of("타입이 다른 JSON", withSuccess("{\"flightId\":\"SECRETBODY\"}", MediaType.APPLICATION_JSON)),
+                Arguments.of("잘못된 Content-Type", withContentType("application/json; charset=SECRETBODY")),
+                Arguments.of("depTime 없음", withSuccess(bodyWithoutDepTime("SECRETBODY"), MediaType.APPLICATION_JSON)));
+    }
+
+    // 출발 시각이 빠진 정상 형식의 본문. 성 자리에 원하는 값을 넣는다
+    private static String bodyWithoutDepTime(String lastName) {
+        return BODY.replace(",\"depTime\":\"2026-11-25T22:45:55\"", "").replace("\"KIM\"", "\"" + lastName + "\"");
+    }
+
+    // 지정한 Content-Type 헤더를 가진 200 응답
+    private static ResponseCreator withContentType(String contentType) {
+        return withSuccess().body(BODY).header("Content-Type", contentType);
     }
 
     @Test
@@ -243,14 +325,32 @@ class AirlineClientTest {
     }
 
     @Test
-    @DisplayName("성에 특수문자가 있어도 인코딩해서 보낸다")
-    void encodesLastName() {
-        server.expect(requestTo("http://airline.test/reservations?pnr=ABC123&lastName=O%27NEIL%26x%3D1"))
-                .andRespond(withSuccess(BODY, MediaType.APPLICATION_JSON));
+    @DisplayName("예약번호와 성은 주소가 아니라 POST 요청 본문에 JSON으로 담아 보낸다")
+    void sendsLastNameInBody() {
+        expectSearch("ABC123", "KIM").andRespond(withSuccess(BODY, MediaType.APPLICATION_JSON));
+
+        airlineClient.findReservation("ABC123", "KIM");
+
+        server.verify();
+    }
+
+    @Test
+    @DisplayName("성에 특수문자가 있어도 본문에 그대로 담아 보낸다")
+    void sendsSpecialCharactersInBody() {
+        expectSearch("ABC123", "O'NEIL&x=1").andRespond(withSuccess(BODY, MediaType.APPLICATION_JSON));
 
         airlineClient.findReservation("ABC123", "O'NEIL&x=1");
 
         server.verify();
+    }
+
+    // 주소에 쿼리 문자열이 없고, POST 본문이 정확히 { pnr, lastName }인 요청만 받는다
+    private ResponseActions expectSearch(String pnr, String lastName) {
+        String body = "{\"pnr\":\"" + pnr + "\",\"lastName\":\"" + lastName + "\"}";
+        return server.expect(requestTo(URL))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().json(body, true));
     }
 
     // 로그 문구와 예외 내용(원인 포함)을 합친 문자열

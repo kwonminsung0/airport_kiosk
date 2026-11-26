@@ -160,7 +160,7 @@ erDiagram
 
 | 메서드 | 주소 | 설명 | 요청 | 응답 | 에러 |
 |---|---|---|---|---|---|
-| GET | /mock-airline/reservations | 예약 조회 (성은 대소문자 무시) | `?pnr=&lastName=` | `{ pnr, lastName, firstName, baggageAllowanceKg, flightId, flightNo, depAirport, arrAirport, depTime, gate }` | 400 파라미터 누락, 404 예약 없음 |
+| POST | /mock-airline/reservations/search | 예약 조회 (성은 대소문자 무시). 성이 주소와 접속 기록에 남지 않도록 본문으로 받음 | `{ pnr, lastName }` | `{ pnr, lastName, firstName, baggageAllowanceKg, flightId, flightNo, depAirport, arrAirport, depTime, gate }` | 400 값 누락, 404 예약 없음 |
 
 ### 키오스크 API
 

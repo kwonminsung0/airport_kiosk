@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.InvalidMediaTypeException;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
@@ -32,12 +34,21 @@ public class AirlineClient {
         String resultCode = "ERROR";
         boolean success = false;
         try {
-            AirlineReservation reservation = airlineRestClient.get()
-                    .uri("/reservations?pnr={pnr}&lastName={lastName}", pnr, lastName)
+            // 성이 주소와 접속 기록에 남지 않도록 POST 본문으로 보낸다
+            AirlineReservation reservation = airlineRestClient.post()
+                    .uri("/reservations/search")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new AirlineReservationRequest(pnr, lastName))
                     .retrieve()
                     .body(AirlineReservation.class);
             if (reservation == null) {
                 log.warn("항공사 응답의 본문이 비어 있음: interfaceName={}", INTERFACE_NAME);
+                throw new BusinessException(ErrorCode.AIRLINE_ERROR);
+            }
+            // 체크인 가능 시간을 판단하는 값이라 없으면 업무를 진행할 수 없다. 응답 해석 실패와 같게 기록한다
+            if (reservation.getDepTime() == null) {
+                log.warn("항공사 응답 오류: interfaceName={}, resultCode={}, cause=필수값 누락(depTime)",
+                        INTERFACE_NAME, resultCode);
                 throw new BusinessException(ErrorCode.AIRLINE_ERROR);
             }
             resultCode = String.valueOf(HttpStatus.OK.value());
@@ -64,6 +75,12 @@ public class AirlineClient {
                 throw new BusinessException(errorCode, e);
             }
             throw new BusinessException(errorCode);
+        } catch (InvalidMediaTypeException e) {
+            // 응답의 Content-Type 형식이 잘못된 경우. RestClientException이 아니어서 따로 잡는다
+            // 예외 메시지에 헤더 값이 들어 있어 예외 종류만 남기고 원인 예외도 담지 않는다
+            log.warn("항공사 응답 오류: interfaceName={}, resultCode={}, cause={}",
+                    INTERFACE_NAME, resultCode, e.getClass().getSimpleName());
+            throw new BusinessException(ErrorCode.AIRLINE_ERROR);
         } finally {
             long elapsedMs = (System.nanoTime() - startedAt) / 1_000_000;
             saveLog(pnr, resultCode, success, elapsedMs);
