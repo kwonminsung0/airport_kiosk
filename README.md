@@ -167,6 +167,7 @@ erDiagram
 | 메서드 | 주소 | 설명 | 요청 | 응답 | 에러 |
 |---|---|---|---|---|---|
 | POST | /api/checkin/reservations/lookup | 예약 조회와 체크인 가능 여부 확인 (출발 24시간 전 ~ 1시간 전) | `{ pnr, lastName }` | `{ pnr, lastName, firstName, flightId, flightNo, depAirport, arrAirport, depTime, gate }` | 400 INVALID_INPUT, 404 RESERVATION_NOT_FOUND, 409 ALREADY_CHECKED_IN, 422 CHECKIN_NOT_AVAILABLE, 502 AIRLINE_ERROR, 504 AIRLINE_TIMEOUT |
+| GET | /api/checkin/flights/{flightId}/seats | 좌석 배치도 조회 (1A~10F 행 번호 순서). 누가 앉았는지(pnr)는 응답하지 않음 | 주소의 `flightId` | `{ flightId, seatRows, seatCols, seats: [{ seatId, seatNo, status }] }` (status: `AVAILABLE` 선택 가능, `ASSIGNED` 배정됨) | 400 INVALID_INPUT, 404 FLIGHT_NOT_FOUND |
 
 에러 응답 형식은 `{ "code": "RESERVATION_NOT_FOUND", "message": "예약을 찾을 수 없습니다. 예약번호와 성을 확인해 주세요." }`입니다. JSON이 아닌 요청은 415 UNSUPPORTED_MEDIA_TYPE, 예상하지 못한 오류는 500 INTERNAL_ERROR로 응답합니다.
 
