@@ -404,6 +404,13 @@ input:focus {
     height: 5.2rem;
 }
 
+/* 띠의 '다음': 처음으로와 같은 높이, 오른쪽 끝 */
+.bar .button {
+    width: 20rem;
+    height: 5.2rem;
+    margin-left: auto;
+}
+
 /* 띠가 내용 끝을 덮지 않게, 띠가 있는 화면은 띠 높이만큼 아래를 비운다 */
 .has-bar {
     padding-bottom: var(--bar-height);

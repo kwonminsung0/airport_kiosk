@@ -9,3 +9,26 @@ function formatDateTime(isoText) {
     const [, month, day] = date.split('-');
     return Number(month) + '월 ' + Number(day) + '일 ' + time.slice(0, 5);
 }
+
+// 셀프 체크인 화면 사이에 넘기는 값 (sessionStorage의 키 하나에 JSON으로 저장)
+// 키오스크는 여러 승객이 함께 쓰므로 처음으로를 누를 때, 조회 화면에 들어올 때, 체크인이 끝날 때 지운다
+const CHECKIN_KEY = 'checkin';
+
+function saveCheckin(data) {
+    sessionStorage.setItem(CHECKIN_KEY, JSON.stringify(data));
+}
+
+// 저장값이 없으면 null
+function loadCheckin() {
+    const text = sessionStorage.getItem(CHECKIN_KEY);
+    return text ? JSON.parse(text) : null;
+}
+
+function clearCheckin() {
+    sessionStorage.removeItem(CHECKIN_KEY);
+}
+
+// 하단 띠의 '처음으로'(data-home)를 누르면 저장값을 지운 뒤 시작 화면으로 간다
+document.querySelectorAll('[data-home]').forEach((link) => {
+    link.addEventListener('click', clearCheckin);
+});
