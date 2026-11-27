@@ -39,7 +39,7 @@ function showReservation(reservation) {
     setText('result-name', reservation.lastName + ' ' + reservation.firstName);
     setText('result-flight-no', reservation.flightNo);
     setText('result-route', reservation.depAirport + ' → ' + reservation.arrAirport);
-    setText('result-dep-time', reservation.depTime.replace('T', ' ').slice(0, 16));
+    setText('result-dep-time', formatDateTime(reservation.depTime)); // common.js
     setText('result-gate', reservation.gate);
     result.hidden = false;
 }

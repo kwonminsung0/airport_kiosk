@@ -30,6 +30,7 @@ html {
     --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
     --content-width: 80rem;          /* 내용 최대 너비 (키오스크 1600px) */
     --radius: 1rem;
+    --bar-height: 7.2rem;            /* 하단 버튼 띠 높이 (키오스크 144px) */
 
     /* 글자 크기 5단계 (약 1.25~1.4배 간격). 괄호는 키오스크(1rem = 20px) 기준 */
     --text-xl: 3.6rem;    /* 72px: 시작 화면 서비스 이름 */
@@ -361,10 +362,12 @@ input:focus {
     display: none;
 }
 
+/* 줄 간격을 --space-1로 둔다. --space-2면 예약 정보 칸이 입력 칸보다 길어져
+   2단이 함께 늘어나고, 오른쪽 칸 아래 끝이 조회 버튼보다 12px 내려간다 */
 .result dl {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: var(--space-2) var(--space-3);
+    gap: var(--space-1) var(--space-3);
     margin: 0;
 }
 
@@ -378,9 +381,35 @@ input:focus {
     font-weight: 800;
 }
 
-/* 화면 아래 버튼 줄 (처음으로) */
-.actions {
+/* 하단 고정 버튼 띠: 왼쪽 처음으로, 오른쪽 다음. 시작 화면에는 두지 않는다.
+   내용 길이와 관계없이 버튼이 항상 같은 자리에 있다 */
+.bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-top: 1px solid var(--color-line);
+    background: var(--color-bg);
+}
+
+.bar .wrap {
     display: flex;
-    justify-content: flex-end;
-    margin-top: var(--space-4);
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    height: var(--bar-height);
+}
+
+.bar .button-secondary {
+    height: 5.2rem;
+}
+
+/* 띠가 내용 끝을 덮지 않게, 띠가 있는 화면은 띠 높이만큼 아래를 비운다 */
+.has-bar {
+    padding-bottom: var(--bar-height);
+}
+
+/* 띠 위쪽에 이미 경계선이 있으므로 main 아래 여백은 줄인다 (오류 줄이 있어도 1080 안에 들어가게) */
+.has-bar main {
+    padding-bottom: var(--space-3);
 }

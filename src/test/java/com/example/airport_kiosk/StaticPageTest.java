@@ -30,7 +30,7 @@ class StaticPageTest {
 
     @ParameterizedTest
     @DisplayName("화면에 필요한 파일을 제공한다")
-    @ValueSource(strings = {"/index.html", "/checkin/lookup.html", "/js/lookup.js", "/css/style.css", "/favicon.svg"})
+    @ValueSource(strings = {"/index.html", "/checkin/lookup.html", "/js/lookup.js", "/js/common.js", "/css/style.css", "/favicon.svg"})
     void servesStaticFiles(String path) throws Exception {
         mockMvc.perform(get(path)).andExpect(status().isOk());
     }
