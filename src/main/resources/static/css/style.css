@@ -420,3 +420,230 @@ input:focus {
 .has-bar main {
     padding-bottom: var(--space-3);
 }
+
+/* 하단 띠 오른쪽 묶음: 안내 문구 + 다음 */
+.bar-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-left: auto;
+}
+
+.bar-hint {
+    color: var(--color-muted);
+    font-weight: 700;
+}
+
+/* 비활성 '다음': 색만이 아니라 점선 테두리·자물쇠 아이콘·왼쪽 안내 문구로 구분한다.
+   .button:disabled의 opacity 0.5는 글자 대비를 4.5:1 아래로 떨어뜨리므로 여기서는 1로 되돌린다 (글자 대비 5.27:1) */
+.bar .button {
+    gap: var(--space-2);
+}
+
+.bar .button:disabled {
+    border: 2px dashed var(--color-muted);
+    background: var(--color-badge);
+    color: var(--color-muted);
+    opacity: 1;
+    cursor: not-allowed;
+}
+
+.bar .lock {
+    display: none;
+    width: 1.6rem;
+    height: 1.6rem;
+}
+
+.bar .button:disabled .lock {
+    display: block;
+}
+
+/* 띠 안의 알림 (예: 좌석을 고른 뒤 다음을 눌렀을 때). 본문에 줄을 더하면 1080을 넘치므로 띠 안에 둔다 */
+.bar-notice {
+    font-weight: 700;
+}
+
+/* ---------- 좌석 화면 ---------- */
+/* 좌석 크기는 "누르기 충분하면서 비행기 모양이 유지되는 크기"로 정했다 (키오스크 61×56px, 동체 가로:세로 약 1.87) */
+.seat-page {
+    --seat-w: 3.05rem;
+    --seat-h: 2.8rem;
+    --seat-label-w: 2rem;   /* F~A 글자 열 */
+    --aisle-h: 2rem;        /* 통로 줄 (행 번호) */
+    --nose: 12rem;          /* 기수 곡선의 가로 반지름 */
+}
+
+.seat-page h1 {
+    margin-bottom: var(--space-3);
+}
+
+/* 동체 윗선과 오른쪽 칸 윗선을 맞춘다 */
+.seat-columns {
+    align-items: start;
+}
+
+/* 동체 윤곽: 왼쪽이 기수. 기수 곡선은 위아래 전체에 걸친 반타원이고, 오른쪽은 살짝 둥근 모서리.
+   배치도를 오른쪽으로 붙여 남는 너비가 기수 쪽으로 가게 한다 (기수 곡선과 F~A 글자 사이 16px 이상) */
+.fuselage {
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--space-3);
+    border: 2px solid var(--color-line);
+    border-radius: var(--nose) 2rem 2rem var(--nose) / 50% 2rem 2rem 50%;
+}
+
+.seat-map {
+    display: grid;
+    gap: var(--space-1);
+}
+
+/* 글자 열·통로 줄은 block + 같은 줄 높이로 두어 "◀ 앞쪽"과 행 번호의 글자 기준선을 맞춘다 */
+.seat-col-label,
+.seat-front,
+.seat-row-label {
+    display: block;
+    color: var(--color-muted);
+    font-weight: 700;
+    line-height: var(--aisle-h);
+    text-align: center;
+}
+
+.seat-col-label {
+    align-self: center;
+}
+
+/* 칸의 글자 크기는 행 번호와 같게 두고(기준선 공유) 안쪽 글자만 작게. 글자 열보다 넓어서 왼쪽으로 넘친다 */
+.seat-front {
+    justify-self: end;
+    white-space: nowrap;
+}
+
+.seat-front span {
+    font-size: var(--text-sm);
+}
+
+.seat-row-label {
+    border-radius: 0.4rem;
+    background: var(--color-panel);
+}
+
+.seat {
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 2px solid var(--color-primary);
+    border-radius: 0.6rem;
+    background: #ffffff;
+    color: var(--color-text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.seat svg {
+    width: 2.2rem;
+    height: 2.2rem;
+}
+
+/* 다른 승객에게 배정된 좌석: 회색 + X (색만으로 구분하지 않는다) */
+.seat-taken {
+    border-color: #c3cad2;
+    background: var(--color-badge);
+    color: var(--color-muted);
+    cursor: not-allowed;
+}
+
+/* 내가 고른 좌석: 대표 색 + ✓ */
+.seat[aria-pressed="true"] {
+    background: var(--color-primary);
+    color: #ffffff;
+}
+
+/* 오른쪽 칸: 선택한 좌석 → 승객·항공편 → 범례 */
+.summary {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-4);
+    border-radius: var(--radius);
+    background: var(--color-panel);
+}
+
+.summary h2 {
+    margin: 0;
+}
+
+.picked {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0;
+}
+
+.picked strong {
+    color: var(--color-primary);
+    font-size: var(--text-xl);
+    line-height: 1;
+}
+
+.picked strong:empty {
+    display: none;
+}
+
+.picked-kind {
+    font-weight: 700;
+}
+
+.summary dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-1) var(--space-3);
+    margin: 0;
+}
+
+.summary dt {
+    color: var(--color-muted);
+    font-weight: 600;
+}
+
+.summary dd {
+    margin: 0;
+    font-weight: 800;
+}
+
+.summary hr {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-top: 1px solid var(--color-line);
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.legend li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.legend .seat {
+    width: 2.2rem;
+    height: 2.2rem;
+    cursor: default;
+}
+
+.legend .seat svg {
+    width: 1.4rem;
+    height: 1.4rem;
+}
+
+/* 아이콘 모음(symbol)은 화면에 그리지 않는다 */
+.icons {
+    display: none;
+}

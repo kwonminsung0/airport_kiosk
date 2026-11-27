@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>좌석 선택</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="has-bar">
+    <header class="top">
+        <div class="wrap">
+            <span class="logo">
+                <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" transform="rotate(45 24 24)" d="M24 3c1.9 0 3 2.2 3 5v11l16 9v4l-16-5v10l5 4v3l-8-2-8 2v-3l5-4V27l-16 5v-4l16-9V8c0-2.8 1.1-5 3-5z"/></svg>
+                <span class="logo-ko">셀프 체크인</span>
+                <span class="logo-dot">·</span>
+                <span class="logo-en">Self Check-in</span>
+            </span>
+            <ol class="steps" aria-label="진행 단계">
+                <li><span class="step-no">1</span>예약 조회</li>
+                <li class="step-line" aria-hidden="true"></li>
+                <li class="current" aria-current="step"><span class="step-no">2</span>좌석 선택</li>
+                <li class="step-line" aria-hidden="true"></li>
+                <li><span class="step-no">3</span>탑승권</li>
+            </ol>
+        </div>
+    </header>
+
+    <main class="wrap seat-page">
+        <h1>좌석을 선택해 주세요</h1>
+        <p id="message" class="message" role="alert" hidden></p>
+
+        <div class="columns seat-columns">
+            <!-- 동체 윤곽: 왼쪽이 기수. 좌석은 seat.js가 그린다 -->
+            <div id="fuselage" class="fuselage" hidden>
+                <div id="seat-map" class="seat-map" role="group" aria-label="좌석 배치도"></div>
+            </div>
+
+            <aside class="summary">
+                <h2>선택한 좌석</h2>
+                <p class="picked" aria-live="polite">
+                    <strong id="picked-seat"></strong>
+                    <span id="picked-kind" class="picked-kind">아직 선택하지 않았습니다</span>
+                </p>
+                <hr>
+                <dl>
+                    <dt>이름</dt><dd id="summary-name"></dd>
+                    <dt>편명</dt><dd id="summary-flight-no"></dd>
+                    <dt>구간</dt><dd id="summary-route"></dd>
+                    <dt>출발 시각</dt><dd id="summary-dep-time"></dd>
+                </dl>
+                <hr>
+                <ul class="legend" aria-hidden="true">
+                    <li><span class="seat"></span>선택 가능</li>
+                    <li><span class="seat" aria-pressed="true"><svg viewBox="0 0 24 24"><use href="#icon-check"/></svg></span>선택한 좌석</li>
+                    <li><span class="seat seat-taken"><svg viewBox="0 0 24 24"><use href="#icon-x"/></svg></span>선택 불가</li>
+                </ul>
+            </aside>
+        </div>
+    </main>
+
+    <nav class="bar" aria-label="화면 이동">
+        <div class="wrap">
+            <a class="button-secondary" href="/" data-home>처음으로</a>
+            <div class="bar-actions">
+                <span id="notice" class="bar-notice" role="status" hidden></span>
+                <span id="next-hint" class="bar-hint">좌석을 먼저 선택해 주세요</span>
+                <button id="next-button" class="button" type="button" disabled>
+                    <svg class="lock" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-lock"/></svg>다음
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 아이콘 모음: 좌석·범례·버튼이 <use href="#…">로 가져다 쓴다 -->
+    <svg class="icons" aria-hidden="true">
+        <symbol id="icon-check" viewBox="0 0 24 24"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+        <symbol id="icon-x" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+        <symbol id="icon-lock" viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0 1 10 0v3M5 11h14v10H5z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/></symbol>
+    </svg>
+
+    <script src="/js/common.js"></script>
+    <script src="/js/seat.js"></script>
+</body>
+</html>
