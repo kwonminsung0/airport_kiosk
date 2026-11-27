@@ -2,12 +2,43 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>공항 키오스크</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <h1>공항 키오스크</h1>
-    <a class="button" href="/checkin/lookup.html">셀프체크인</a>
-    <button type="button" disabled>셀프백드랍 (준비 중)</button>
+    <header class="top">
+        <div class="wrap">
+            <span class="logo">
+                <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" transform="rotate(45 24 24)" d="M24 3c1.9 0 3 2.2 3 5v11l16 9v4l-16-5v10l5 4v3l-8-2-8 2v-3l5-4V27l-16 5v-4l16-9V8c0-2.8 1.1-5 3-5z"/></svg>
+                <span class="logo-ko">셀프 서비스</span>
+                <span class="logo-dot">·</span>
+                <span class="logo-en">Self Service</span>
+            </span>
+        </div>
+    </header>
+
+    <main class="wrap">
+        <h1>이용할 서비스를 선택해 주세요.</h1>
+        <nav class="services">
+            <a class="service" href="/checkin/lookup.html">
+                <span>
+                    <span class="service-name">셀프 체크인</span>
+                    <span class="service-en">Self Check-in</span>
+                    <span class="service-desc">예약 조회, 좌석 선택, 탑승권 발급</span>
+                </span>
+                <span class="button">셀프 체크인 시작</span>
+            </a>
+            <button class="service" type="button" disabled>
+                <span>
+                    <span class="service-name">셀프 백드랍</span>
+                    <span class="service-en">Self Bag Drop</span>
+                    <span class="service-desc">수하물 위탁</span>
+                </span>
+                <span class="badge">준비 중</span>
+            </button>
+        </nav>
+    </main>
 </body>
 </html>
