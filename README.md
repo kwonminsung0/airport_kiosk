@@ -173,7 +173,20 @@ erDiagram
 
 ## 테스트
 
-작성 예정
+`./gradlew test`로 실행합니다. 테스트는 Oracle 호환 모드의 H2(`MODE=Oracle`)를 쓰고, H2와 Oracle이 다르게 동작할 수 있는 검증은 실제 Oracle에서도 실행해 확인합니다.
+
+| 검증 | 방법 | 결과 |
+|---|---|---|
+| 좌석 동시 선택 | 스레드 10개가 `CountDownLatch`로 동시에 출발해 같은 빈 좌석(ZZ101 8C)을 각자 다른 예약번호로 배정 요청 (`SeatConcurrencyTest`) | 성공 1건, `SEAT_ALREADY_TAKEN` 9건, 좌석에는 성공한 예약번호만 남음. H2와 Oracle AI Database 26ai Free에서 같은 결과. 조건부 UPDATE의 `status = 'AVAILABLE'` 조건을 빼면 10건 모두 성공하고 마지막 예약번호로 덮어써지는 것을 확인 |
+
+실제 Oracle에서 실행할 때는 `.env`를 읽은 뒤 접속 정보를 환경 변수로 덮어씁니다 (테스트를 시작할 때 `schema.sql`·`data.sql`이 다시 실행되어 데이터가 초기화됩니다).
+
+```bash
+set -a; . ./.env; set +a
+SPRING_DATASOURCE_URL=jdbc:oracle:thin:@//localhost:1521/FREEPDB1 \
+SPRING_DATASOURCE_USERNAME=$APP_USER SPRING_DATASOURCE_PASSWORD=$APP_USER_PASSWORD \
+./gradlew test --tests '*SeatConcurrencyTest' --rerun
+```
 
 ## 트러블슈팅
 
