@@ -7,7 +7,7 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/css/style.css">
 </head>
-<body>
+<body class="has-bar">
     <header class="top">
         <div class="wrap">
             <span class="logo">
@@ -60,11 +60,16 @@
             </div>
         </div>
 
-        <div class="actions">
-            <a class="button-secondary" href="/">처음으로</a>
-        </div>
     </main>
 
+    <nav class="bar" aria-label="화면 이동">
+        <div class="wrap">
+            <a class="button-secondary" href="/" data-home>처음으로</a>
+            <a id="next-link" class="button" href="/checkin/seat.html" hidden>다음</a>
+        </div>
+    </nav>
+
+    <script src="/js/common.js"></script>
     <script src="/js/lookup.js"></script>
 </body>
 </html>
