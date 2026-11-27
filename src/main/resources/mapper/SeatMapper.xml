@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.airport_kiosk.checkin.mapper.SeatMapper">
+
+    <select id="findFlightById" resultType="com.example.airport_kiosk.checkin.vo.FlightVO">
+        SELECT flight_id, flight_no, dep_airport, arr_airport, dep_time, gate, seat_rows, seat_cols
+        FROM FLIGHT
+        WHERE flight_id = #{flightId}
+    </select>
+
+    <!-- seat_no 문자열만으로 정렬하면 10A가 1F 다음에 온다. 길이(행 번호 자릿수)로 먼저 정렬한다 -->
+    <select id="findByFlightId" resultType="com.example.airport_kiosk.checkin.vo.SeatVO">
+        SELECT seat_id, flight_id, seat_no, status, pnr
+        FROM SEAT
+        WHERE flight_id = #{flightId}
+        ORDER BY LENGTH(seat_no), seat_no
+    </select>
+
+    <select id="findSeatById" resultType="com.example.airport_kiosk.checkin.vo.SeatVO">
+        SELECT seat_id, flight_id, seat_no, status, pnr
+        FROM SEAT
+        WHERE seat_id = #{seatId}
+    </select>
+
+    <!-- 조건부 UPDATE: 빈 좌석(AVAILABLE)일 때만 바뀐다. 두 사람이 동시에 실행해도 한 명만 1행, 나머지는 0행이 된다
+         CK_SEAT_STATUS_PNR 때문에 status와 pnr을 함께 바꾸고, 다른 항공편의 좌석이 배정되지 않게 flight_id도 확인한다 -->
+    <update id="assignSeat">
+        UPDATE SEAT
+        SET status = 'ASSIGNED', pnr = #{pnr}
+        WHERE seat_id = #{seatId}
+          AND flight_id = #{flightId}
+          AND status = 'AVAILABLE'
+    </update>
+
+</mapper>

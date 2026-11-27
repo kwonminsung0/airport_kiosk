@@ -191,6 +191,31 @@ class AirlineClientTest {
                 Arguments.of("baggageAllowanceKg가 null", BODY.replace("\"baggageAllowanceKg\":23", "\"baggageAllowanceKg\":null")));
     }
 
+    // 좌석 조회·배정에 쓰는 값이라 없으면 업무를 진행할 수 없다
+    @ParameterizedTest(name = "{0}")
+    @DisplayName("항공편 ID(flightId)가 없으면 AIRLINE_ERROR가 발생하고 실패로 기록한다")
+    @MethodSource("bodiesWithoutFlightId")
+    void throwsAirlineErrorWhenFlightIdMissing(String name, String body) {
+        assertErrorCode(withSuccess(body, MediaType.APPLICATION_JSON), ErrorCode.AIRLINE_ERROR);
+        verifyLog("ERROR", false);
+    }
+
+    static Stream<Arguments> bodiesWithoutFlightId() {
+        return Stream.of(
+                Arguments.of("flightId 없음", BODY.replace("\"flightId\":1,", "")),
+                Arguments.of("flightId가 null", BODY.replace("\"flightId\":1", "\"flightId\":null")));
+    }
+
+    @Test
+    @DisplayName("항공편 ID가 없으면 빠진 값의 이름만 남기고 응답 본문은 남기지 않는다")
+    void logsMissingFlightIdWithoutBody() {
+        assertErrorCode(withSuccess(BODY.replace("\"flightId\":1,", ""), MediaType.APPLICATION_JSON),
+                ErrorCode.AIRLINE_ERROR);
+
+        assertThat(logs.list).extracting(ILoggingEvent::getLevel).containsExactly(Level.WARN);
+        assertThat(loggedText()).contains("ERROR", "flightId").doesNotContain("KIM");
+    }
+
     @Test
     @DisplayName("출발 시각이 없으면 빠진 값의 이름만 남기고 응답 본문은 남기지 않는다")
     void logsMissingDepTimeWithoutBody() {
