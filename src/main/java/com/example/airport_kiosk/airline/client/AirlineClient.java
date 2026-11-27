@@ -51,6 +51,12 @@ public class AirlineClient {
                         INTERFACE_NAME, resultCode);
                 throw new BusinessException(ErrorCode.AIRLINE_ERROR);
             }
+            // 좌석 조회·배정에 쓰는 값이라 depTime과 같은 방식으로 검사한다
+            if (reservation.getFlightId() == null) {
+                log.warn("항공사 응답 오류: interfaceName={}, resultCode={}, cause=필수값 누락(flightId)",
+                        INTERFACE_NAME, resultCode);
+                throw new BusinessException(ErrorCode.AIRLINE_ERROR);
+            }
             resultCode = String.valueOf(HttpStatus.OK.value());
             success = true;
             return reservation;
