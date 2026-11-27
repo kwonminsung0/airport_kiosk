@@ -16,6 +16,7 @@ import com.example.airport_kiosk.common.exception.BusinessException;
 import com.example.airport_kiosk.common.exception.ErrorCode;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -52,5 +53,49 @@ class SeatServiceImplTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.FLIGHT_NOT_FOUND);
         verify(seatMapper, never()).findByFlightId(99L);
+    }
+
+    @Test
+    @DisplayName("빈 좌석이면 배정에 성공하고 좌석을 다시 조회하지 않는다")
+    void assignsSeat() {
+        when(seatMapper.assignSeat(1L, 11L, "ABC123")).thenReturn(1);
+
+        seatService.assignSeat(1L, 11L, "ABC123");
+
+        verify(seatMapper).assignSeat(1L, 11L, "ABC123");
+        verify(seatMapper, never()).findSeatById(11L);
+    }
+
+    @Test
+    @DisplayName("0행이 바뀌었고 이 항공편의 좌석이면 SEAT_ALREADY_TAKEN이 발생한다")
+    void throwsWhenSeatTaken() {
+        when(seatMapper.assignSeat(1L, 12L, "ABC123")).thenReturn(0);
+        when(seatMapper.findSeatById(12L)).thenReturn(new SeatVO(12L, 1L, "1B", "ASSIGNED", "STU111"));
+
+        assertErrorCode(() -> seatService.assignSeat(1L, 12L, "ABC123"), ErrorCode.SEAT_ALREADY_TAKEN);
+    }
+
+    @Test
+    @DisplayName("0행이 바뀌었고 좌석이 없으면 SEAT_NOT_FOUND가 발생한다")
+    void throwsWhenSeatMissing() {
+        when(seatMapper.assignSeat(1L, 99L, "ABC123")).thenReturn(0);
+        when(seatMapper.findSeatById(99L)).thenReturn(null);
+
+        assertErrorCode(() -> seatService.assignSeat(1L, 99L, "ABC123"), ErrorCode.SEAT_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("0행이 바뀌었고 다른 항공편의 좌석이면 SEAT_NOT_FOUND가 발생한다")
+    void throwsWhenSeatOfOtherFlight() {
+        when(seatMapper.assignSeat(1L, 70L, "ABC123")).thenReturn(0);
+        when(seatMapper.findSeatById(70L)).thenReturn(new SeatVO(70L, 2L, "5A", "AVAILABLE", null));
+
+        assertErrorCode(() -> seatService.assignSeat(1L, 70L, "ABC123"), ErrorCode.SEAT_NOT_FOUND);
+    }
+
+    private void assertErrorCode(ThrowingCallable call, ErrorCode errorCode) {
+        assertThatThrownBy(call)
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(errorCode);
     }
 }

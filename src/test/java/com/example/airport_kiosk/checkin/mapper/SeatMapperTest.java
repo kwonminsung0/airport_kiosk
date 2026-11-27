@@ -64,6 +64,54 @@ class SeatMapperTest {
         assertThat(seat1a.getPnr()).isNull();
     }
 
+    @Test
+    @DisplayName("빈 좌석을 배정하면 1행이 바뀌고 상태와 예약번호가 함께 저장된다")
+    void assignsAvailableSeat() {
+        Long flightId = flightId("ZZ101");
+        Long seatId = seatId(flightId, "5A");
+
+        int updated = seatMapper.assignSeat(flightId, seatId, "ABC123");
+
+        assertThat(updated).isEqualTo(1);
+        SeatVO seat = seatMapper.findSeatById(seatId);
+        assertThat(seat.getStatus()).isEqualTo("ASSIGNED");
+        assertThat(seat.getPnr()).isEqualTo("ABC123");
+    }
+
+    @Test
+    @DisplayName("이미 배정된 좌석은 0행이 바뀌고 원래 예약번호가 그대로 남는다")
+    void doesNotAssignTakenSeat() {
+        Long flightId = flightId("ZZ101");
+        Long seatId = seatId(flightId, "2B");
+
+        int updated = seatMapper.assignSeat(flightId, seatId, "ABC123");
+
+        assertThat(updated).isZero();
+        assertThat(seatMapper.findSeatById(seatId).getPnr()).isEqualTo("STU111");
+    }
+
+    @Test
+    @DisplayName("다른 항공편의 좌석 ID면 0행이 바뀌고 좌석은 빈 상태로 남는다")
+    void doesNotAssignSeatOfOtherFlight() {
+        Long seatId = seatId(flightId("ZZ102"), "5A");
+
+        int updated = seatMapper.assignSeat(flightId("ZZ101"), seatId, "ABC123");
+
+        assertThat(updated).isZero();
+        assertThat(seatMapper.findSeatById(seatId).getStatus()).isEqualTo("AVAILABLE");
+    }
+
+    @Test
+    @DisplayName("없는 좌석 ID로 조회하면 null을 돌려준다")
+    void returnsNullWhenSeatMissing() {
+        assertThat(seatMapper.findSeatById(-1L)).isNull();
+    }
+
+    private Long seatId(Long flightId, String seatNo) {
+        return jdbcTemplate.queryForObject(
+                "SELECT seat_id FROM SEAT WHERE flight_id = ? AND seat_no = ?", Long.class, flightId, seatNo);
+    }
+
     private Long flightId(String flightNo) {
         return jdbcTemplate.queryForObject("SELECT flight_id FROM FLIGHT WHERE flight_no = ?", Long.class, flightNo);
     }
