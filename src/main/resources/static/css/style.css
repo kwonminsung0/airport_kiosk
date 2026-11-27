@@ -24,6 +24,7 @@ html {
     --color-muted: #555f6b;          /* 보조 글자 (흰 바탕 대비 6.00:1) */
     --color-line: #d3d8de;           /* 테두리, 구분선 */
     --color-badge: #e4e8ec;
+    --color-taken-line: #c3cad2;     /* 선택 불가 좌석 테두리 */
     --color-error: #b3261e;          /* 오류 글자 (오류 바탕 대비 5.72:1) */
     --color-error-bg: #fdecea;
 
@@ -546,7 +547,7 @@ input:focus {
 
 /* 다른 승객에게 배정된 좌석: 회색 + X (색만으로 구분하지 않는다) */
 .seat-taken {
-    border-color: #c3cad2;
+    border-color: var(--color-taken-line);
     background: var(--color-badge);
     color: var(--color-muted);
     cursor: not-allowed;
